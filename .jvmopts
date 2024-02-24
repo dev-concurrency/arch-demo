@@ -1,0 +1,13 @@
+-XX:MaxMetaspaceSize=2g
+-XX:ReservedCodeCacheSize=1g
+-Xms1g
+-Xmx12g
+-XshowSettings:vm
+-Xss4m
+-Dcats.effect.stackTracingMode=full
+-Dcats.effect.traceBufferSize=1024
+-Dcats.effect.enhancedExceptions=true
+#-Dactive.app="commands-app"
+# -Dactive.app="ports-app"
+# -Dconfig.file=src/main/resources/app2.conf
+# -Dconfig.file=src/main/resources/app1.conf

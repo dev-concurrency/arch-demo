@@ -1,0 +1,49 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dev-mocks"
+dynamic = ["version"]
+description = ''
+readme = "README.txt"
+requires-python = ">=3.10"
+license = "MIT"
+keywords = []
+authors = [
+    { name = "José Albert Cruz Almaguer", email = "jalbertcruz@gmail.com" },
+]
+classifiers = [
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation :: CPython",
+]
+dependencies = [
+    "fastapi[extras]>=0.109.0",
+    "pydantic-settings~=2.1.0",
+    "uvicorn[standard]>=0.27.0.post1",
+    "prometheus-fastapi-instrumentator~=6.1.0"
+]
+
+[project.urls]
+Source = "https://github.com/jdev-ops/dev-utilities"
+
+
+[tool.hatch.version]
+path = "src/main/__about__.py"
+
+[[tool.hatch.envs.all.matrix]]
+python = ["3.10", "3.11", "3.12"]
+
+include = [
+    "src/",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = [
+    "src/main",
+]
+
+[dirs.env]
+virtual = ".venv"

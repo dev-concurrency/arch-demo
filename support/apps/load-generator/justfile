@@ -1,0 +1,35 @@
+set shell := ["sh", "-c"]
+set allow-duplicate-recipes
+set positional-arguments
+set dotenv-load
+set export
+
+alias dc-u := docker-compose-up
+alias dc-d := docker-compose-down
+alias clean-dd := clean-docker-compose-data
+
+docker-compose-up:
+  docker compose -f docker-compose.yml up -d
+
+docker-compose-down:
+  docker compose -f docker-compose.yml down
+
+# Remove docker data volumes
+clean-docker-compose-data:
+  rm -Rf support/observability/data/grafana/grafana.db
+  sudo rm -Rf support/data
+  mkdir -p support/data/.prometheus
+  chmod -R 777 support/data
+
+start-loki:
+  #!/usr/bin/env bash
+  set -euxo pipefail
+
+  loki -config.file=/media/a/data/installers/P/microservices/monitoring/loki-v2.9.4/loki-local-config.yaml
+  promtail -config.file=/media/a/data/installers/P/microservices/monitoring/loki-v2.9.4/promtail-local-config.yaml
+
+  grpcui -plaintext 0.0.0.0:$port &
+  echo "grpcui started on port $port"
+  echo $! > .grpcui-$port.pid
+  pid=$(cat .grpcui-$port.pid)
+  path=$(sudo netstat -ltnp | grep -w $pid | awk '{print $4}')

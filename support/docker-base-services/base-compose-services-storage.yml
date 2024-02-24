@@ -1,0 +1,26 @@
+
+services:
+
+  postgres:
+    image: postgres:15.5-alpine3.19
+    command: ["postgres", "-c", "log_statement=all", "-c", "log_destination=stderr"]
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: pass
+  
+  cassandra:
+    image: cassandra:4.1.2
+    container_name: cassandra
+    ports:
+      - 9042:9042
+    environment:
+      - MAX_HEAP_SIZE=256M
+      - HEAP_NEWSIZE=128M
+      - CASSANDRA_CLUSTER_NAME=cassandra-akka-cluster
+
+  cassandra-util:
+    image: cassandra:4.1.2
+
+networks:
+  cassandra_network:

@@ -1,0 +1,12 @@
+# # config file version
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    url: http://prometheus:9090
+
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://host.docker.internal:3100

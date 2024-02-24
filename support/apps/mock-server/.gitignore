@@ -1,0 +1,4 @@
+.idea/
+.venv/
+.ruff_cache/
+dist/

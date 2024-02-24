@@ -1,0 +1,33 @@
+services:
+  postgres-db:
+    extends:
+        file: docker-base-services/base-compose-services-storage.yml
+        service: postgres
+    image: postgres:15.5-bullseye
+    volumes:
+      - ./.data/.postgres:/var/lib/postgresql/data
+      - ./storage/postgres/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+  
+  cassandra_db:
+    extends:
+        file: docker-base-services/base-compose-services-storage.yml
+        service: cassandra 
+    volumes:
+      - ./.data/.cassandra:/var/lib/cassandra
+    networks:
+        - cassandra_network
+
+  cassandra_temp:
+    extends:
+        file: docker-base-services/base-compose-services-storage.yml
+        service: cassandra-util
+    volumes:
+      - ./storage/cassandra/scripts/bash:/docker-entrypoint.sh
+      - ./storage/cassandra/scripts/cql:/tmp/cql
+    networks:
+      - cassandra_network
+    command: >
+      bash ./docker-entrypoint.sh/execute-cql.sh
+
+networks:
+  cassandra_network:

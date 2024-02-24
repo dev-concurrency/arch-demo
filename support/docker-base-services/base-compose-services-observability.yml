@@ -1,0 +1,22 @@
+
+services:
+
+  prometheus-base:
+    image: prom/prometheus:v2.45.3
+    hostname: "prometheus"
+    ports:
+      - 9090:9090
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+
+  grafana-base:
+    image: grafana/grafana:10.3.1
+    hostname: "grafana"
+    ports:
+      - 3000:3000
+    user: "472"
