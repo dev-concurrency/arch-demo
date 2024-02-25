@@ -40,6 +40,7 @@ val akkaManagement = "1.5.0"
 val cassandra = "1.2.0"
 val akkaPersistenceR2dbc = "1.2.1"
 val akkaProjection = "1.5.1"
+val izumi = "1.2.5"
 
 lazy val root = project
   .in(file("."))
@@ -73,8 +74,8 @@ lazy val root = project
       "com.fasterxml.jackson.core" % "jackson-databind"           % JacksonVersion,
       "com.typesafe.akka"         %% "akka-serialization-jackson" % AkkaVersion,
       "com.typesafe.akka"         %% "akka-http"                  % AkkaHttpVersion,
-      "io.7mind.izumi"            %% "distage-core"               % "1.2.5",
-      "io.7mind.izumi"            %% "distage-extension-config"   % "1.2.5",
+      "io.7mind.izumi"            %% "distage-core"               % izumi,
+      "io.7mind.izumi"            %% "distage-extension-config"   % izumi,
       // "io.confluent" % "kafka-avro-serializer" % "7.5.2",
       "com.typesafe.akka"         %% "akka-slf4j"                 % AkkaVersion,
       // "ch.qos.logback" % "logback-classic" % "1.2.3"
@@ -117,11 +118,16 @@ val scenario2 = Seq(
   "init",
 )
 
-lazy val selectedScenario = scenarios(sys.env.get("SCENARIO").getOrElse("scenario1"))
+val scenario3 = Seq(
+  "import components.examples.*",
+)
 
+lazy val selectedScenario = sys.env.get("SCENARIO").getOrElse("scenario1")
+lazy val scenarioInititalCommands = scenarios(selectedScenario)
 lazy val scenarios = Map(
   "scenario1" -> scenario1,
   "scenario2" -> scenario2,
+  "scenario3" -> scenario3,
 )
 
 ThisBuild / scalacOptions ++=
@@ -136,7 +142,7 @@ ThisBuild / scalacOptions ++=
 // ) ++ Seq("-new-syntax", "-rewrite")
 // ) ++ Seq("-rewrite", "-indent")
 
-Compile / console / initialCommands += selectedScenario.mkString(";\n")
+Compile / console / initialCommands += scenarioInititalCommands.mkString(";\n")
 
 ThisBuild / watchTriggeredMessage := Watch.clearScreenOnTrigger
 
@@ -146,6 +152,13 @@ addCommandAlias("styleCheck", "scalafmtSbtCheck; scalafmtCheckAll")
 addCommandAlias("styleFix", "scalafmtSbt; scalafmtAll")
 addCommandAlias("rl", "reload plugins; update; reload return")
 
-TaskKey[Unit]("r") := (root / Compile / runMain)
-  .toTask(" demo.examples.run")
-  .value
+selectedScenario match{
+  case "scenario3" => 
+    TaskKey[Unit]("r") := (root / Compile / runMain)
+      .toTask(" components.examples.run")
+      .value
+  case _ =>
+    TaskKey[Unit]("r") := (root / Compile / runMain)
+      .toTask(" demo.examples.run")
+      .value
+}

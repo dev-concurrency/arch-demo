@@ -1,6 +1,4 @@
 package infrastructure
-package persistence
-
 package util
 
 case class ResultError(code: TransportError, message: String) extends infrastructure.CborSerializable

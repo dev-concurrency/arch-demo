@@ -27,7 +27,7 @@ object WalletEventSourcing:
 
     import infrastructure.persistence.WalletEntity
 
-    import infrastructure.persistence.util.*
+    import infrastructure.util.*
 
     import infrastructure.persistence.WalletDataModel.*
 

@@ -13,7 +13,7 @@ object Serializers:
     import akka.serialization.jackson.JacksonObjectMapperProvider
     import com.fasterxml.jackson.databind.module.SimpleModule
 
-    import persistence.util.TransportError
+    import util.TransportError
     import akka.actor.typed.{ ActorSystem => TypedActorSystem }
 
     def register(sys: TypedActorSystem[_]): ObjectMapper =

@@ -8,6 +8,8 @@ import akka.cluster.sharding.typed.scaladsl.EntityTypeKey
 import akka.persistence.typed.PersistenceId
 import akka.persistence.typed.scaladsl.{ Effect, EventSourcedBehavior, RetentionCriteria }
 
+import infrastructure.util.*
+
 object WalletDataModel:
     sealed trait Model                    extends CborSerializable
     final case class Balance(value: Long) extends Model
@@ -17,7 +19,6 @@ object WalletDataModel:
 object WalletCommands:
 
     import WalletDataModel.*
-    import util.*
 
     sealed trait Command extends CborSerializable:
         def replyTo: ActorRef[ResultError]
@@ -37,8 +38,6 @@ import org.slf4j.{ Logger, LoggerFactory }
 
 trait CommandsHandler:
     this: WalletEntity.State =>
-
-    import util.*
 
     import WalletCommands.*
     import WalletDataModel.*
@@ -91,7 +90,6 @@ object WalletEntity:
     export WalletDataModel.*
     export WalletCommands.*
     export WalletEvents.*
-    import util.*
 
     val typeKey: EntityTypeKey[Command] = EntityTypeKey[Command]("wallet")
 
