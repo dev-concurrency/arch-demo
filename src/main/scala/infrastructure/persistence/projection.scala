@@ -107,7 +107,7 @@ class WalletUPSERTProjectionHandler()(using ec: ExecutionContext)
               }
             )
 
-            val existingWallets: mutable.Map[String, WalletEntity.State] = mutable.Map(existingWalletsSeq: _*)
+            val existingWallets: mutable.Map[String, WalletEntity.State] = mutable.Map(existingWalletsSeq*)
             val newItems = mutable.Map.empty[String, WalletEntity.State]
             val walletsToUpdate = mutable.Set.empty[String]
 

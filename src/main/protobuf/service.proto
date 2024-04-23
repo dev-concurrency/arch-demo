@@ -5,6 +5,8 @@ package com.wallet.demo.grpc.admin;
 import "scalapb/scalapb.proto";
 import "google/protobuf/wrappers.proto";
 
+import "opts/my_opts.proto";
+
 option (scalapb.options) = {
   scope: FILE
   package_name: "com.wallet.demo.grpc.admin"
@@ -18,8 +20,12 @@ option (scalapb.options) = {
   preserve_unknown_fields: false
   enum_value_naming: CAMEL_CASE
   enum_strip_prefix: false
-  scala3_sources: true
+  // scala3_sources: true
 };
+
+message MyMessage {
+  option (opts.my_option) = "Hello world!";
+}
 
 service WalletService {
     rpc addCredit (CreditRequest) returns (Response) {}

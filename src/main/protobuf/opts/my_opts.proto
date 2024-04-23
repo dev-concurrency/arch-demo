@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package opts;
+
+// import "scalapb/scalapb.proto";
+import "google/protobuf/descriptor.proto";
+
+// option (scalapb.options) = {
+//   scope: FILE
+//   package_name: "opts"
+//   flat_package: true
+//   single_file: true
+//   java_conversions: false
+//   lenses: true
+//   getters: true
+//   retain_source_code_info: false
+//   no_default_values_in_constructor: false
+//   preserve_unknown_fields: false
+//   enum_value_naming: CAMEL_CASE
+//   enum_strip_prefix: false
+//   scala3_sources: true
+// };
+
+// https://scalapb.github.io/docs/user_defined_options
+// https://protobuf.dev/programming-guides/proto2/#customoptions
+
+extend google.protobuf.MessageOptions {
+  optional string my_option = 51234;
+}

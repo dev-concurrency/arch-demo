@@ -1,5 +1,7 @@
 package infrastructure
 
+import com.fasterxml.jackson.databind.JsonNode
+
 object Serializers:
 
     import com.fasterxml.jackson.core.JsonGenerator
@@ -14,9 +16,11 @@ object Serializers:
     import com.fasterxml.jackson.databind.module.SimpleModule
 
     import util.TransportError
+    import util.ResultError
+    // import util.Result
     import akka.actor.typed.{ ActorSystem => TypedActorSystem }
 
-    def register(sys: TypedActorSystem[_]): ObjectMapper =
+    def register(sys: TypedActorSystem[?]): ObjectMapper =
         val mapper: ObjectMapper = JacksonObjectMapperProvider(sys).getOrCreate("jackson-cbor", None)
         val mapperJson: ObjectMapper = JacksonObjectMapperProvider(sys).getOrCreate("jackson-json", None)
         val module: SimpleModule = new SimpleModule()
@@ -35,6 +39,9 @@ object Serializers:
 
         module.addSerializer(new AkkaDoneSerializer())
         module.addDeserializer(classOf[akka.Done], new AkkaDoneDeserializer())
+
+        // module.addSerializer(new ErrorOr_A_Serializer())
+        // module.addDeserializer(classOf[ErrorOr[CborSerializable]], new ErrorOr_A_Deserializer())
 
         mapper.registerModule(module)
         mapperJson.registerModule(module)
@@ -114,3 +121,45 @@ object Serializers:
     class AkkaDoneDeserializer extends StdDeserializer[akka.Done](classOf[akka.Done]):
 
         override def deserialize(p: JsonParser, ctxt: DeserializationContext): akka.Done = akka.Done
+
+    // class ErrorOr_A_Serializer extends StdSerializer[ErrorOr[CborSerializable]](classOf[ErrorOr[CborSerializable]]):
+
+    //     override def serialize(value: ErrorOr[CborSerializable], gen: JsonGenerator, provider: SerializerProvider): Unit =
+    //         gen.writeStartObject()
+    //         val mapper = gen.getCodec().asInstanceOf[ObjectMapper]
+    //         value match
+    //             case Left(err: ResultError)  =>
+    //                 gen.writeStringField("_typeBase", "left")
+    //                 // gen.writeStringField("_type", err.getClass().getSimpleName())
+    //                 val rawValue = mapper.writeValueAsBytes(err)
+    //                 // gen.writeBinaryField("value", rawValue)
+    //                 gen.writeBinary(rawValue)
+    //             case Right(data: CborSerializable) =>
+    //                 gen.writeStringField("_typeBase", "right")
+    //                 // gen.writeStringField("_type", data.getClass().getSimpleName())
+    //                 val rawValue = mapper.writeValueAsBytes(data)
+    //                 gen.writeBinaryField("value", rawValue)
+    //                 // gen.writeBinary(rawValue)
+
+    //         // val rawValue = mapper.writeValueAsBytes(value)
+    //         // gen.writeBinary(rawValue)
+    //         gen.writeEndObject()
+
+    // class ErrorOr_A_Deserializer extends StdDeserializer[ErrorOr[CborSerializable]](classOf[ErrorOr[CborSerializable]]):
+
+    //     override def deserialize(p: JsonParser, ctxt: DeserializationContext): ErrorOr[CborSerializable] =
+    //         val node = p.getCodec().readTree(p).asInstanceOf[JsonNode]
+    //         val mapper = p.getCodec().asInstanceOf[ObjectMapper]
+    //         val typeBase = node.get("_typeBase").asText()
+    //         // val _type = node.get("_type").asText()
+    //         val value = node.get("value").binaryValue()
+    //         typeBase match
+    //             case "left" =>
+    //                 // val clazz = Class.forName(_type)
+    //                 // val obj = mapper.readValue(value, clazz)
+    //                 val obj = mapper.re(value)
+    //                 Left(obj.asInstanceOf[ResultError])
+    //             case "right" =>
+    //                 val clazz = Class.forName(_type)
+    //                 val obj = mapper.readValue(value, clazz)
+    //                 Right(obj.asInstanceOf[CborSerializable])

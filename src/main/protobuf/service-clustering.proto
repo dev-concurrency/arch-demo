@@ -18,11 +18,12 @@ option (scalapb.options) = {
   preserve_unknown_fields: false
   enum_value_naming: CAMEL_CASE
   enum_strip_prefix: false
-  scala3_sources: true
+//   scala3_sources: true
 };
 
 service ClusteringWalletService {
-    rpc createWallet(Request) returns (Response) {}
+    rpc createWallet(RequestId) returns (Response) {}
+    rpc deleteWallet(RequestId) returns (Response) {}
     rpc addCredit (CreditRequest) returns (Response) {}
     rpc addDebit(DebitRequest) returns (Response) {}
     rpc getBalance(RequestId) returns (BalanceResponse) {}
@@ -42,7 +43,9 @@ message Request{
 }
 
 message RequestId{
-    string id = 1;
+  google.protobuf.StringValue id = 1
+//    [(scalapb.field).no_box = true, (scalapb.field).required = true]
+   ;
 }
 
 message Response{
@@ -50,5 +53,53 @@ message Response{
 }
 
 message BalanceResponse{
-    int64 balance = 1;
+  int64 balance = 1;
+}
+
+message BadRequestError {
+  string code = 1;
+  string title = 2;
+  string description = 3;
+}
+
+message UnauthorizedError {
+  string code = 1;
+  string title = 2;
+  string description = 3;
+}
+
+message ForbiddenError {
+  string code = 1;
+  string title = 2;
+  string description = 3;
+}
+
+message NotFoundError {
+  string code = 1;
+  string title = 2;
+  string description = 3;
+}
+
+message TooManyRequestsError {
+  string code = 1;
+  string title = 2;
+  string description = 3;
+}
+
+message ServiceUnavailableError {
+  string code = 1;
+  string title = 2;
+  string description = 3;
+}
+
+message GatewayTimeoutError {
+  string code = 1;
+  string title = 2;
+  string description = 3;
+}
+
+message InternalServerError {
+  string code = 1;
+  string title = 2;
+  string description = 3;
 }

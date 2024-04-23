@@ -6,10 +6,6 @@ set export := true
 
 # default: compile
 
-alias dc-u := docker-compose-up
-alias dc-d := docker-compose-down
-alias clean-dd := clean-docker-data
-
 postgres_data_dir := justfile_directory() + "/support/.data/.postgres"
 cassandra_data_dir := justfile_directory() + "/support/.data/.cassandra"
 kafka_data_dir := justfile_directory() + "/support/.data/.kafka"
@@ -32,9 +28,33 @@ drop-all:
     liquibase drop-all \
               --defaults-file=support/storage/postgres/liquibase.properties
 
+[private]
+[macos]
 docker-compose-up:
+    docker compose \
+      -f support/docker-compose-storage-macos.yml \
+      -f support/docker-compose-messaging.yml \
+      -f support/docker-compose-observability.yml \
+      up -d
+
+[private]
+[linux]
+docker-compose-up:
+    docker compose \
+      -f support/docker-compose-storage-linux.yml \
+      -f support/docker-compose-messaging.yml \
+      -f support/docker-compose-observability.yml \
+      up -d
+
+infrastructure-up:
     #!/usr/bin/env bash
     set -euxo pipefail
+
+    if [[ ! -d "{{ kafka_data_dir }}" ]]; then
+      mkdir -p "{{ kafka_data_dir }}"
+      mkdir -p "{{ prometheus_data_dir }}"
+      sudo chmod -R 777 support/.data
+    fi
 
     if [[ ! -d "{{ cassandra_data_dir }}" ]]; then
       firstTime=true
@@ -42,56 +62,53 @@ docker-compose-up:
       firstTime=false
     fi
 
-    if [[ {{ os() }} == "macos" ]]; then
-      docker compose \
-        -f support/docker-compose-storage-macos.yml \
-        -f support/docker-compose-messaging.yml \
-        -f support/docker-compose-observability.yml \
-        up -d
-    else
-      docker compose \
-        -f support/docker-compose-storage-linux.yml \
-        -f support/docker-compose-messaging.yml \
-        -f support/docker-compose-observability.yml \
-        up -d
-    fi
+    just docker-compose-up
 
     if [ "$firstTime" == "true" ]; then
       docker logs support-cassandra_temp-1 -f
       just run-migrations
     fi
 
+[private]
+[macos]
 docker-compose-down:
+    docker compose \
+      -f support/docker-compose-storage-macos.yml \
+      -f support/docker-compose-messaging.yml \
+      -f support/docker-compose-observability.yml \
+      down
+
+[private]
+[linux]
+docker-compose-down:
+    docker compose \
+      -f support/docker-compose-storage-linux.yml \
+      -f support/docker-compose-messaging.yml \
+      -f support/docker-compose-observability.yml \
+      down
+
+infrastructure-down:
+    just docker-compose-down
+
+[confirm]
+clean-infrastructure-data: infrastructure-down
     #!/usr/bin/env bash
-    set -euxo pipefail
 
-    if [[ {{ os() }} == "macos" ]]; then
-      docker compose \
-        -f support/docker-compose-storage-macos.yml \
-        -f support/docker-compose-messaging.yml \
-        -f support/docker-compose-observability.yml \
-        down
-    else
-      docker compose \
-        -f support/docker-compose-storage-linux.yml \
-        -f support/docker-compose-messaging.yml \
-        -f support/docker-compose-observability.yml \
-        down
-    fi
-
-clean-docker-data: docker-compose-down
     rm -Rf support/observability/data/grafana/grafana.db
     sudo rm -Rf support/observability/data/grafana/alerting
     sudo rm -Rf support/.data
-    mkdir -p support/.data/.prometheus
-    mkdir -p support/.data/.kafka
-    chmod -R 777 support/.data
-    chmod -R 777 support/observability/data/grafana
+    mkdir -p "{{ prometheus_data_dir }}"
+    mkdir -p "{{ kafka_data_dir }}"
+    sudo chmod -R 777 support/.data
+    sudo chmod -R 777 support/observability/data/grafana
+    rm -Rf logs
+    echo "All infrastructure data cleaned"
 
-clean-kafka-data: docker-compose-down
-    sudo rm -Rf support/.data/.kafka
-    mkdir -p support/.data/.kafka
-    chmod -R 777 support/.data/.kafka
+[confirm]
+clean-kafka-data: infrastructure-down
+    sudo rm -Rf "{{ kafka_data_dir }}"
+    mkdir -p "{{ kafka_data_dir }}"
+    sudo chmod -R 777 "{{ kafka_data_dir }}"
 
 lstart:
     #!/usr/bin/env bash

@@ -1,0 +1,14 @@
+services:
+  postgres-db-advertisers:
+    image: postgres:15.3-alpine3.18
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_PASSWORD: pass
+    env_file:
+      - path: ../.local/.2.env
+        required: true # default
+      - path: ../.local/.2ax.env
+        required: false
+    volumes:
+      - "${pwd-.}/../.local:/usr2"

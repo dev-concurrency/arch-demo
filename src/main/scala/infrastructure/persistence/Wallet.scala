@@ -27,6 +27,7 @@ object WalletCommands:
     final case class CreditCmd(amount: Int, replyTo: ActorRef[Done | ResultError]) extends Command
     final case class DebitCmd(amount: Int, replyTo: ActorRef[Done | ResultError])  extends Command
     final case class GetBalanceCmd(replyTo: ActorRef[Balance | ResultError])       extends Command
+    final case class StopCmd(replyTo: ActorRef[Done | ResultError])                extends Command
 
 object WalletEvents:
     sealed trait Event                       extends CborSerializable
@@ -35,6 +36,8 @@ object WalletEvents:
     final case class WalletCreated()         extends Event
 
 import org.slf4j.{ Logger, LoggerFactory }
+
+import akka.event.Logging
 
 trait CommandsHandler:
     this: WalletEntity.State =>
@@ -45,6 +48,12 @@ trait CommandsHandler:
 
     def applyCommand(cmd: Command)(using logger: Logger): WalletEntity.ReplyEffect =
       cmd match
+
+        case StopCmd(replyTo) =>
+          Effect.stop().thenReply(replyTo)(
+            _ =>
+              Done
+          )
 
         case CreditCmd(amount, replyTo) =>
           Effect.persist(CreditAdded(amount)).thenReply(replyTo)(
@@ -79,9 +88,13 @@ trait EventsHandler:
 
     def applyEvent(event: Event): WalletEntity.State =
       event match
-        case CreditAdded(amount) => copy(balance = balance + amount)
+        case CreditAdded(amount) =>
+          // println("Credit added =============")
+          copy(balance = balance + amount)
         case DebitAdded(amount)  => copy(balance = balance - amount)
-        case WalletCreated()     => this
+        case WalletCreated()     =>
+          // println("Wallet created =============")
+          this
 
 object WalletEntity:
 
@@ -139,7 +152,9 @@ object WalletEntity:
               (state, event) =>
                 state match {
                   case None        => Some(onFirstEvent(event))
-                  case Some(state) => Some(state.applyEvent(event))
+                  case Some(state) =>
+                    println(s"Event applied: $event")
+                    Some(state.applyEvent(event))
                 }
             )
               .withTaggerForState:
