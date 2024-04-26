@@ -169,7 +169,5 @@ class SmithyResource(service: Service) {
         }
         .resource
 
-  private val docs: HttpRoutes[IO] = smithy4s.http4s.swagger.docs[IO](HelloWorldService)
-
   val all: Resource[IO, HttpRoutes[IO]] = example // .map(_ <+> docs)
 }

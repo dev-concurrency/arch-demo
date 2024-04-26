@@ -3,6 +3,8 @@ package examples
 
 import akka.actor.typed.delivery.ConsumerController.Start
 import cats.effect.IO
+import demo.Wallet
+import hello.WalletRestService
 
 object WalletEventSourcing:
 
@@ -65,11 +67,32 @@ object WalletEventSourcing:
     import cats.implicits.*
     import cats.instances.*
 
+    import io.scalaland.chimney.dsl.*
+    import io.scalaland.chimney.*
+
     import cats.syntax.all.*
 
     import cats.mtl.*
     import cats.mtl.implicits.*
+    
+    import doobie.hikari.HikariTransactor
+    import doobie.implicits.*
 
+    trait WalletRepository[F[_]]:
+        def deleteWallet(id: String): F[Int]
+
+    trait WalletRepositoryIO[F[_]]:
+        def deleteWallet(id: String): F[Either[Throwable, Int]]
+    
+    class WalletRepositoryImpl[G: ExceptionGenerator](wRepo: WalletRepositoryIO[IO], transformers: MyTransformers[G]) extends WalletRepository[Result]:
+        import transformers.*
+        def deleteWallet(id: String): Result[Int] = wRepo.deleteWallet(id).transformInto[Result[Int]]
+        
+    class WalletRepositoryIOImpl(tx: HikariTransactor[IO]) extends WalletRepositoryIO[IO]:
+        def deleteWallet(id: String): IO[Either[Throwable, Int]] =
+          sql"DELETE FROM wallet WHERE id = $id".update.run.transact(tx).attempt
+
+        
     def reportError[F[_], A](code: TransportError, message: String)(using FR: Raise[F, ServiceError]): F[A] =
       code match {
         case TransportError.NotFound => FR.raise(ErrorsBuilder.notFoundError(message))
@@ -318,9 +341,7 @@ object WalletEventSourcing:
           Command
         ]:
             (ctx: ActorContext[Command]) =>
-
                 given ec: ExecutionContextExecutor = ctx.system.executionContext
-
                 val log = Logging(ctx.system.toClassic, classOf[Command])
 
                 Behaviors.receiveMessage[Command] {
@@ -335,28 +356,43 @@ object WalletEventSourcing:
                     import cats.effect.unsafe.implicits.global
                     // val myIO: IO[Nothing] = grpcApi.gRPCServer[cats.effect.IO]
 
+                    val transactorResource: Resource[IO, HikariTransactor[IO]] = HikariTransactor.newHikariTransactor[IO](
+                      "org.postgresql.Driver",
+                      "jdbc:postgresql://localhost:5432/service",
+                      "duser",
+                      "dpass",
+                      ec
+                    )
+
                     val grpcIO = cats.effect.Deferred[cats.effect.IO, Boolean].flatMap {
                       shutdown =>
                           grpcServerControl = Some(shutdown)
+
                           import akka.grpc.GrpcServiceException
+                          import com.wallet.demo.clustering.grpc.admin.BadRequestError
 
                           given generator: ExceptionGenerator[GrpcServiceException] with
                               def generateException(msg: String): Throwable =
-                                  val error = com.wallet.demo.clustering.grpc.admin.BadRequestError("EE", "Code", msg)
+                                  val e = com.example.ErrorsBuilder.badRequestError(msg)
+                                  val error = BadRequestError(e.code, e.title, e.message)
                                   GrpcServiceException(Code.INVALID_ARGUMENT, msg, Seq(error))
 
                           val wServiceIO = WalletEventSourcing.WalletServiceIOImpl[Result](ws)
                           val resource =
                             for {
-                              serverDefinition <- grpcApi.helloService[GrpcServiceException](wServiceIO)
-                              server <- grpcApi.run[cats.effect.IO](serverDefinition)
+                              tx <- transactorResource
+                              repo = WalletRepositoryIOImpl(tx)
+                              wRepo = WalletRepositoryImpl[GrpcServiceException](repo, MyTransformers[GrpcServiceException])
+                              serverDefinition <- grpcApi.helloService[GrpcServiceException](wServiceIO, wRepo)
+                              server <- grpcApi.run[IO](serverDefinition)
                             } yield server
 
                           val x =
                             resource.evalMap(
-                              server => cats.effect.IO.pure(server.start())
+                              server => IO.pure(server.start())
                             ).useForever
-                          cats.effect.IO.race(shutdown.get, x)
+
+                          IO.race(shutdown.get, x)
                     }
                     val httpApi: HttpServerResource = HttpServerResource()
                     val httpIO = cats.effect.Deferred[cats.effect.IO, Boolean].flatMap {

@@ -39,6 +39,15 @@ class MyTransformers[G: ExceptionGenerator]:
     transparent inline given TransformerConfiguration[?] =
       TransformerConfiguration.default.enableDefaultValues.enableBeanSetters.enableBeanGetters.enableInheritedAccessors
 
+    implicit def eitherToResultTransformers[A: ClassTag]: Transformer[IO[Either[Throwable, A]], Result[A]] =
+      new Transformer[IO[Either[Throwable, A]], Result[A]]:
+          def transform(result: IO[Either[Throwable, A]]): Result[A] = {
+            EitherT(result.map {
+              case Right(value) => Right(value)
+              case Left(error)  => Left(ErrorsBuilder.internalServerError(error.getMessage))
+            })
+          }
+          
     implicit def othersTransformers[A: ClassTag]: Transformer[Result[A], IO[A]] =
       new Transformer[Result[A], IO[A]]:
           def transform(result: Result[A]): IO[A] = {
@@ -123,7 +132,7 @@ trait ClusteringWalletGrpcService[F[_]] {
   def getBalance(request: RequestId, ctx: Metadata): F[BalanceResponse]
 }
 
-class ClusteringWalletGrpcServiceImpl[F[_], G: ExceptionGenerator](service: WalletEventSourcing.WalletServiceIO[F])
+class ClusteringWalletGrpcServiceImpl[F[_], G: ExceptionGenerator](service: WalletEventSourcing.WalletServiceIO[F], repo: WalletEventSourcing.WalletRepository[F])
   (using transformers: MyTransformers[G])(using F: Async[F], FR: Raise[F, ServiceError], M: Monad[F], MT: MonadThrow[F])
     extends ClusteringWalletGrpcService[F] {
   import transformers.optionTransformers
@@ -139,9 +148,7 @@ class ClusteringWalletGrpcServiceImpl[F[_], G: ExceptionGenerator](service: Wall
     res match {
       case Right(r) => r.pure[F]
       case Left(e)  => FR.raise(ErrorsBuilder.badRequestError(e.getMessage))
-
     }
-
   }
 
   // def createWallet(request: RequestId, ctx: Metadata): F[Response] =
@@ -173,25 +180,26 @@ class ClusteringWalletGrpcServiceImpl[F[_], G: ExceptionGenerator](service: Wall
     for {
       r <- validateNonNullId(request)
       res <- service.createWallet(r.id)
-    } yield Response(r.id)
+    } yield Response(Some(r.id))
 
   def deleteWallet(request: RequestId, ctx: Metadata): F[Response] =
     for {
       r <- validateNonNullId(request)
-      res <- service.deleteWallet(r.id)
-    } yield Response(r.id)
+      _ <- service.deleteWallet(r.id)
+      _ <- repo.deleteWallet(r.id)
+    } yield Response(Some(r.id))
 
   def addCredit(request: CreditRequest, ctx: Metadata): F[Response] =
     for {
       r <- validateCreditRequest(request)
       res <- service.addCredit(r.id, WalletDataModel.Credit(r.amount))
-    } yield Response(r.id)
+    } yield Response(Some(r.id))
 
   def addDebit(request: DebitRequest, ctx: Metadata): F[Response] =
     for {
       r <- validateDebitRequest(request)
       res <- service.addDebit(r.id, WalletDataModel.Debit(r.amount))
-    } yield Response(r.id)
+    } yield Response(Some(r.id))
 
   def getBalance(request: RequestId, ctx: Metadata): F[BalanceResponse] =
     // BalanceResponse(100).pure[F]
@@ -207,20 +215,20 @@ class ClusteringWalletGrpcServiceImpl[F[_], G: ExceptionGenerator](service: Wall
 class ClusteringWalletFs2GrpcServiceImpl[G: ExceptionGenerator](service: ClusteringWalletGrpcService[Result], transformers: MyTransformers[G])
     extends ClusteringWalletServiceFs2Grpc[IO, Metadata] {
   import transformers.othersTransformers
+
   def createWallet(request: RequestId, ctx: Metadata) = service.createWallet(request, ctx).transformInto[IO[Response]]
   def deleteWallet(request: RequestId, ctx: Metadata) = service.deleteWallet(request, ctx).transformInto[IO[Response]]
   def addCredit(request: CreditRequest, ctx: Metadata) = service.addCredit(request, ctx).transformInto[IO[Response]]
   def addDebit(request: DebitRequest, ctx: Metadata) = service.addDebit(request, ctx).transformInto[IO[Response]]
   def getBalance(request: RequestId, ctx: Metadata) = service.getBalance(request, ctx).transformInto[IO[BalanceResponse]]
-
 }
 
 class GrpcServerResource:
 
-    def helloService[G: ExceptionGenerator](wService: WalletEventSourcing.WalletServiceIO[Result]): Resource[IO, ServerServiceDefinition] = {
+    def helloService[G: ExceptionGenerator](wService: WalletEventSourcing.WalletServiceIO[Result], repo: WalletEventSourcing.WalletRepository[Result]): Resource[IO, ServerServiceDefinition] = {
 
       val transformers = new MyTransformers
-      val sImpl = new ClusteringWalletGrpcServiceImpl[Result, G](wService)(using transformers)
+      val sImpl = new ClusteringWalletGrpcServiceImpl[Result, G](wService, repo)(using transformers)
 
       ClusteringWalletServiceFs2Grpc.bindServiceResource[IO](
         new ClusteringWalletFs2GrpcServiceImpl[G](sImpl, transformers)

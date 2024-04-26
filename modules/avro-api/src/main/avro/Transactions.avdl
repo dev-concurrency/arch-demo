@@ -1,0 +1,14 @@
+
+@namespace("org.integration.avro.transactions")
+protocol Transactions{
+    @subject("transatcion.credit-request.v1")
+    record CreditRequest{
+        string id;
+        int amount;
+    }
+    @subject("transatcion.debit-request.v1")
+    record DebitRequest{
+        string id;
+        int amount;
+    }
+}
