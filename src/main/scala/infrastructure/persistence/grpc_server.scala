@@ -10,7 +10,7 @@ import fs2.grpc.syntax.all.*
 import cats.effect.*
 import com.wallet.demo.clustering.grpc.admin.*
 
-import akka.grpc.{ GrpcServiceException, Trailers }
+import akka.grpc.GrpcServiceException
 import com.google.rpc.Code
 import io.grpc.*
 
@@ -30,7 +30,6 @@ trait ExceptionGenerator[F]:
 object ExceptionGenerator:
     def apply[F](using obj: ExceptionGenerator[F]): ExceptionGenerator[F] = obj
 
-import akka.grpc.GrpcServiceException
 
 class MyTransformers[G: ExceptionGenerator]:
 
@@ -113,16 +112,10 @@ case class OperationRequest(id: String, amount: Int) {
   require(amount > 0, "amount must be greater than 0")
 }
 
-import com.example.*
 import cats.*
-import cats.effect.*
-import cats.implicits.*
-import cats.instances.*
 
-import cats.syntax.all.*
 
 import cats.mtl.*
-import cats.mtl.implicits.*
 
 trait ClusteringWalletGrpcService[F[_]] {
   def createWallet(request: RequestId, ctx: Metadata): F[Response]

@@ -45,11 +45,10 @@ class WalletProjection()(using system: ActorSystem[Nothing]):
         )
 
 import akka.Done
-import akka.projection.eventsourced.EventEnvelope
 import akka.projection.r2dbc.scaladsl.{ R2dbcHandler, R2dbcSession }
 import io.r2dbc.spi.Row
 import scala.collection.{ immutable, mutable }
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.Future
 import org.slf4j.{ Logger, LoggerFactory }
 
 class WalletUPSERTProjectionHandler()(using ec: ExecutionContext)

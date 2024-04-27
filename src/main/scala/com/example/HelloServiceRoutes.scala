@@ -1,28 +1,18 @@
 package com.example
 
 import hello.*
-import cats.syntax.all.*
 import cats.effect.*
-import cats.effect.syntax.all.*
-import org.http4s.implicits.*
-import org.http4s.ember.server.*
 import org.http4s.*
-import com.comcast.ip4s.*
 import smithy4s.http4s.SimpleRestJsonBuilder
-import scala.concurrent.duration.*
 
 import smithy4s.kinds.PolyFunction
 import smithy4s.codecs.*
 
-import akka.cluster.typed.*
-import akka.actor.ActorSystem as UntypedActorSystem
 
 import cats.data.EitherT
 
 import smithy4s.Hints
-import org.http4s.headers.Authorization
 import smithy4s.http4s.ServerEndpointMiddleware
-import java.util.concurrent.Executors
 
 object AuthMiddleware {
 

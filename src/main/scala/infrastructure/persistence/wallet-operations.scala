@@ -1,16 +1,10 @@
 package event_sourcing
 package examples
 
-import akka.actor.typed.delivery.ConsumerController.Start
-import cats.effect.IO
-import demo.Wallet
-import hello.WalletRestService
 
 object WalletEventSourcing:
 
-    import com.typesafe.config.ConfigFactory
     import akka.persistence.typed.PersistenceId
-    import akka.management.cluster.bootstrap.ClusterBootstrap
     import akka.management.scaladsl.AkkaManagement
     import akka.actor.typed.ActorRef
     import akka.actor.typed.scaladsl.adapter.TypedActorSystemOps
@@ -34,20 +28,14 @@ object WalletEventSourcing:
 
     import infrastructure.persistence.WalletDataModel.*
 
-    import java.time.{ LocalDate, ZonedDateTime }
-    import java.time.temporal.ChronoUnit
 
     import akka.persistence.cassandra.cleanup.Cleanup
-    import akka.persistence.cassandra.query.scaladsl.CassandraReadJournal
-    import akka.persistence.query.PersistenceQuery
     import akka.stream.scaladsl.{ Balance => _, * }
 
-    import fs2.grpc.syntax.all.*
 
     import akka.event.Logging
 
     import com.google.rpc.Code
-    import io.grpc.*
 
     import com.example.*
 
@@ -65,15 +53,12 @@ object WalletEventSourcing:
     import cats.*
     import cats.effect.*
     import cats.implicits.*
-    import cats.instances.*
 
     import io.scalaland.chimney.dsl.*
     import io.scalaland.chimney.*
 
-    import cats.syntax.all.*
 
     import cats.mtl.*
-    import cats.mtl.implicits.*
     
     import doobie.hikari.HikariTransactor
     import doobie.implicits.*
@@ -234,7 +219,7 @@ object WalletEventSourcing:
                 //   Future(())
                 //   ).run()
                 val cleanup = new Cleanup(sys)
-                val res = Source.single(s"${WalletEntity.typeKey.name}|$id")
+                Source.single(s"${WalletEntity.typeKey.name}|$id")
                   .mapAsync(persistenceIdParallelism)(
                     i => {
                       println(s"Deleting: $i")

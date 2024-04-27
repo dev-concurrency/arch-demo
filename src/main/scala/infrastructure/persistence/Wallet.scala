@@ -2,11 +2,11 @@ package infrastructure
 package persistence
 
 import akka.Done
-import akka.actor.typed.{ Behavior, SupervisorStrategy }
+import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.sharding.typed.scaladsl.EntityTypeKey
 import akka.persistence.typed.PersistenceId
-import akka.persistence.typed.scaladsl.{ Effect, EventSourcedBehavior, RetentionCriteria }
+import akka.persistence.typed.scaladsl.{ Effect, EventSourcedBehavior }
 
 import infrastructure.util.*
 
@@ -37,7 +37,6 @@ object WalletEvents:
 
 import org.slf4j.{ Logger, LoggerFactory }
 
-import akka.event.Logging
 
 trait CommandsHandler:
     this: WalletEntity.State =>
@@ -84,7 +83,6 @@ trait EventsHandler:
     this: WalletEntity.State =>
 
     import WalletEvents.*
-    import WalletDataModel.*
 
     def applyEvent(event: Event): WalletEntity.State =
       event match

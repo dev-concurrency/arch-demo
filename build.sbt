@@ -34,6 +34,7 @@ val V = new {
   val circeGeneric         = "0.14.6"
 
   val akkaVersion          = "2.9.2"
+  val akkaGrpc             = "2.4.1"
   val kafkaVersion         = "5.0.0"
   val logbackVersion       = "1.4.14"
   val jacksonVersion       = "2.11.4"
@@ -57,6 +58,7 @@ val V = new {
   val skunk                = "1.1.0-M3"
 
   val postgress            = "42.7.3"
+  val commonsCompress      = "1.26.1"
   
   // https://packages.confluent.io/maven/io/confluent/kafka-avro-serializer/
   val kafkaAvroSerializer  = "7.6.1"
@@ -69,10 +71,13 @@ val V = new {
   val avroCompilerVersion          = "1.11.3"
 
   val fs2Kafka                     = "3.5.1"
+
   
 }
 
 val Deps = new {
+
+      val commonsCompress            = "org.apache.commons" % "commons-compress"  % V.commonsCompress 
 
       val postgresql                 = "org.postgresql" %  "postgresql"           % V.postgress
 
@@ -123,6 +128,7 @@ val Deps = new {
       val akkaProjectionCore         = "com.lightbend.akka"            %% "akka-projection-core"              % V.akkaProjection
       val akkaProjectionEventsourced = "com.lightbend.akka"            %% "akka-projection-eventsourced"      % V.akkaProjection
       val akkaKubenetes              = "com.lightbend.akka.discovery"  %% "akka-discovery-kubernetes-api"     % V.akkaManagement
+      val akkaGrpc                   = "com.lightbend.akka.grpc"       %% "akka-grpc-runtime"                 % V.akkaGrpc
 
       val cats                       = "org.typelevel"                 %% "cats-core"                         % V.cats
       val catsEffect                 = "org.typelevel"                 %% "cats-effect"                       % V.catsEffect
@@ -152,6 +158,8 @@ val Deps = new {
       val avro                       = "org.apache.avro"     % "avro"                           % V.avroCompilerVersion
       
       val fs2Kafka                   = "com.github.fd4s"    %% "fs2-kafka"                      % V.fs2Kafka
+
+
 }
 
 def mapGen(name: String) = {
@@ -169,11 +177,45 @@ def mapGen(name: String) = {
   m.toMap
 }
 
+lazy val commonSettings = Seq(
+  update / evictionWarningOptions := EvictionWarningOptions.empty,
+  scalaVersion := V.scalaLTSVersion,
+  organization := "org",
+  organizationName := "Demos",
+  ThisBuild / evictionErrorLevel := Level.Info,
+  dependencyOverrides ++= Seq(
+  ),
+  ThisBuild / resolvers += "Akka library repository".at("https://repo.akka.io/maven"),
+  ThisBuild / resolvers += "Confluent Maven Repository".at("https://packages.confluent.io/maven/"),
+)
+
+lazy val appSettings = Seq(
+  scalaVersion := V.scalaLatestVersion,
+  dependencyOverrides ++= Seq(
+  ),
+  scalacOptions ++=
+    Seq(
+      "-explain",
+      "-Ysafe-init",
+      "-deprecation",
+      "-feature",
+      "-Yretain-trees",
+      "-Xmax-inlines",
+      "50",
+      // "-Yexplicit-nulls",
+      // "-Wunused:all",
+    )
+  // ) ++ Seq("-new-syntax", "-rewrite")
+  // ) ++ Seq("-rewrite", "-indent")
+  // ) ++ Seq("-rewrite", "-source", "3.4-migration")
+)
+
 lazy val restApi = project
   .in(file("modules/rest-api"))
   .enablePlugins(Smithy4sCodegenPlugin)
+  .disablePlugins(ScalafixPlugin)
+  .settings(commonSettings)
   .settings(
-    scalaVersion := V.scalaLTSVersion,
     libraryDependencies ++= Seq(
       "com.disneystreaming.smithy4s" %% "smithy4s-http4s"         % smithy4sVersion.value,
       "com.disneystreaming.smithy"   %  "smithytranslate-traits"  % V.smithytranslateTraitsVersion,
@@ -183,8 +225,9 @@ lazy val restApi = project
 lazy val grpcApi = project
   .in(file("modules/grpc-api"))
   .enablePlugins(Fs2Grpc)
+  .disablePlugins(ScalafixPlugin)
+  .settings(commonSettings)
   .settings(
-    scalaVersion := V.scalaLTSVersion,
     libraryDependencies ++= Seq(
       Deps.grpc,
       Deps.scalapbCommonProtos,
@@ -193,8 +236,10 @@ lazy val grpcApi = project
     PB.protocVersion := "4.26.1",
   )
 
+
 lazy val avroApi = project
   .in(file("modules/avro-api"))
+  .disablePlugins(ScalafixPlugin)
   .settings(
     scalaVersion := V.scalaLTSVersion,
     libraryDependencies ++= Seq(
@@ -204,10 +249,10 @@ lazy val avroApi = project
 
 lazy val root = project
   .in(file("."))
-  // .enablePlugins(Fs2Grpc)
-  // .enablePlugins(Smithy4sCodegenPlugin)
   .settings(autoImportSettings)
+  .settings(appSettings)
   .settings(
+    semanticdbEnabled := true,
     scalaVersion := V.scalaLatestVersion,
     // scalafmtOnCompile := true,
     Compile / run / fork := true,
@@ -222,15 +267,7 @@ lazy val root = project
         case (key, value) => s"""-D$key="$value""""
       }
     },
-    
-    // Compile / PB.targets := Seq(
-    //     PB.gens.java -> (Compile / sourceManaged).value,
-    //     scalapb.gen() -> (Compile / sourceManaged).value
-    //  ),
-    // scalapbCodeGeneratorOptions += CodeGeneratorOption.Fs2Grpc,
-    
     libraryDependencies ++= Seq(
-      "org.apache.commons" % "commons-compress" % "1.26.1",
       Deps.postgresql,
 
       Deps.doobiePostgresCirce,
@@ -245,9 +282,6 @@ lazy val root = project
       Deps.grpcNettyShaded,
       Deps.scalapbCommonProtos,
 
-      // "com.disneystreaming.smithy4s" %% "smithy4s-http4s" % smithy4sVersion.value,
-      // "com.disneystreaming.smithy4s" %% "smithy4s-http4s-swagger" % smithy4sVersion.value,
-      // "org.http4s" %% "http4s-ember-server" % "0.23.26",
       Deps.http4s,
 
       Deps.chimney,
@@ -270,8 +304,7 @@ lazy val root = project
       Deps.akkaProjectionR2dbc,
       Deps.akkaProjectionCore,
       Deps.akkaProjectionEventsourced,
-
-      "com.lightbend.akka.grpc" %% "akka-grpc-runtime" % "2.4.1",
+      Deps.akkaGrpc,
 
       Deps.cats,
       Deps.catsEffect,
@@ -294,17 +327,14 @@ lazy val root = project
       Deps.kafkaAvroSerializer,
     ),
   )
-  .aggregate(restApi)
+  // .aggregate(restApi)
+  // .aggregate(grpcApi)
+  // .aggregate(avroApi)
   .dependsOn(restApi)
-  .aggregate(grpcApi)
   .dependsOn(grpcApi)
-  .aggregate(avroApi)
   .dependsOn(avroApi)
 
 // format: on
-
-ThisBuild / resolvers += "Akka library repository".at("https://repo.akka.io/maven")
-ThisBuild / resolvers += "Confluent Maven Repository".at("https://packages.confluent.io/maven/")
 
 val scenario1 = Seq(
   "import demo.examples.*",
@@ -344,19 +374,6 @@ lazy val scenarios = Map(
   "scenario5" -> scenario5,
   "scenario6" -> scenario6,
 )
-
-ThisBuild / scalacOptions ++=
-  Seq(
-    "-explain",
-    "-deprecation",
-    // "-Wunused:all",
-    "-Yretain-trees",
-    // "-Yexplicit-nulls",
-    // "-Ysafe-init",
-  )
-// ) ++ Seq("-new-syntax", "-rewrite")
-// ) ++ Seq("-rewrite", "-indent")
-// ) ++ Seq("-rewrite", "-source", "3.4-migration")
 
 ThisBuild / watchTriggeredMessage := Watch.clearScreenOnTrigger
 

@@ -1,6 +1,5 @@
 package infrastructure
 
-import com.fasterxml.jackson.databind.JsonNode
 
 object Serializers:
 
@@ -16,7 +15,6 @@ object Serializers:
     import com.fasterxml.jackson.databind.module.SimpleModule
 
     import util.TransportError
-    import util.ResultError
     // import util.Result
     import akka.actor.typed.{ ActorSystem => TypedActorSystem }
 

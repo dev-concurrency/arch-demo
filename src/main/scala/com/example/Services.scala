@@ -2,16 +2,11 @@ package com.example
 
 import hello.*
 
-import cats.data.Validated
 import cats.*
 import cats.effect.*
-import cats.implicits.*
-import cats.instances.*
 
-import cats.syntax.all.*
 
 import cats.mtl.*
-import cats.mtl.implicits.*
 
 trait HWService[F[_]]:
     def hello(name: String, town: Option[String]): F[Greeting]
@@ -25,7 +20,6 @@ class HWServiceImpl[F[_]](using F: Async[F], FR: Raise[F, ServiceError], M: Mona
     def ch2(): F[Unit] = F.pure(Greeting(s"Hello from ch2!"))
 
     def hello(name: String, town: Option[String]): F[Greeting] =
-        import cats.effect.unsafe.implicits.global
         // IO{throw new Exception("xxxxxxxxxxx")}.unsafeRunSync()
 
         F.pure(Greeting(s"Hello $name from $town!"))
