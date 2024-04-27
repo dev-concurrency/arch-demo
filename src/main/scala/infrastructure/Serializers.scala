@@ -1,6 +1,5 @@
 package infrastructure
 
-
 object Serializers:
 
     import com.fasterxml.jackson.core.JsonGenerator

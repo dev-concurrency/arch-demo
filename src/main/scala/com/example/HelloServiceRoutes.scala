@@ -1,18 +1,14 @@
 package com.example
 
-import hello.*
-import cats.effect.*
-import org.http4s.*
-import smithy4s.http4s.SimpleRestJsonBuilder
-
-import smithy4s.kinds.PolyFunction
-import smithy4s.codecs.*
-
-
 import cats.data.EitherT
-
+import cats.effect.*
+import hello.*
+import org.http4s.*
 import smithy4s.Hints
+import smithy4s.codecs.*
 import smithy4s.http4s.ServerEndpointMiddleware
+import smithy4s.http4s.SimpleRestJsonBuilder
+import smithy4s.kinds.PolyFunction
 
 object AuthMiddleware {
 

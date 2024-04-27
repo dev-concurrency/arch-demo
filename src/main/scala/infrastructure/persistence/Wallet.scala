@@ -6,8 +6,8 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.sharding.typed.scaladsl.EntityTypeKey
 import akka.persistence.typed.PersistenceId
-import akka.persistence.typed.scaladsl.{ Effect, EventSourcedBehavior }
-
+import akka.persistence.typed.scaladsl.Effect
+import akka.persistence.typed.scaladsl.EventSourcedBehavior
 import infrastructure.util.*
 
 object WalletDataModel:
@@ -36,7 +36,6 @@ object WalletEvents:
     final case class WalletCreated()         extends Event
 
 import org.slf4j.{ Logger, LoggerFactory }
-
 
 trait CommandsHandler:
     this: WalletEntity.State =>

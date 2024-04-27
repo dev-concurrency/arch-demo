@@ -1,17 +1,19 @@
 package event_sourcing
 package examples
 
+import scala.concurrent.ExecutionContext
+
 import akka.actor.typed.ActorSystem
-import akka.cluster.typed.{ ClusterSingleton, SingletonActor }
+import akka.cluster.typed.ClusterSingleton
+import akka.cluster.typed.SingletonActor
 import akka.persistence.cassandra.query.scaladsl.CassandraReadJournal
 import akka.persistence.query.Offset
-import akka.projection.{ ProjectionBehavior, ProjectionId }
+import akka.projection.ProjectionBehavior
+import akka.projection.ProjectionId
 import akka.projection.eventsourced.EventEnvelope
 import akka.projection.eventsourced.scaladsl.EventSourcedProvider
 import akka.projection.r2dbc.scaladsl.R2dbcProjection
 import akka.projection.scaladsl.SourceProvider
-import scala.concurrent.ExecutionContext
-
 import infrastructure.persistence.WalletEntity
 import infrastructure.persistence.WalletEvents as EventsDataModel
 

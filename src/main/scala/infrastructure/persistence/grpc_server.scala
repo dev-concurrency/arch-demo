@@ -1,35 +1,27 @@
 package event_sourcing
 package examples
 
-import io.grpc.ServerServiceDefinition
-import io.grpc.protobuf.services.ProtoReflectionService
-import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder
-
-import fs2.grpc.syntax.all.*
-
-import cats.effect.*
-import com.wallet.demo.clustering.grpc.admin.*
-
 import akka.grpc.GrpcServiceException
-import com.google.rpc.Code
-import io.grpc.*
-
-import cats.implicits.*
-import io.scalaland.chimney.dsl.*
-import io.scalaland.chimney.*
-
 import cats.data.EitherT
-
-import infrastructure.persistence.WalletDataModel
-
+import cats.effect.*
+import cats.implicits.*
 import com.example.*
+import com.google.rpc.Code
+import com.wallet.demo.clustering.grpc.admin.*
+import fs2.grpc.syntax.all.*
+import infrastructure.persistence.WalletDataModel
+import io.grpc.*
+import io.grpc.ServerServiceDefinition
+import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder
+import io.grpc.protobuf.services.ProtoReflectionService
+import io.scalaland.chimney.*
+import io.scalaland.chimney.dsl.*
 
 trait ExceptionGenerator[F]:
     def generateException(msg: String): Throwable
 
 object ExceptionGenerator:
     def apply[F](using obj: ExceptionGenerator[F]): ExceptionGenerator[F] = obj
-
 
 class MyTransformers[G: ExceptionGenerator]:
 
@@ -46,7 +38,7 @@ class MyTransformers[G: ExceptionGenerator]:
               case Left(error)  => Left(ErrorsBuilder.internalServerError(error.getMessage))
             })
           }
-          
+
     implicit def othersTransformers[A: ClassTag]: Transformer[Result[A], IO[A]] =
       new Transformer[Result[A], IO[A]]:
           def transform(result: Result[A]): IO[A] = {
@@ -114,7 +106,6 @@ case class OperationRequest(id: String, amount: Int) {
 
 import cats.*
 
-
 import cats.mtl.*
 
 trait ClusteringWalletGrpcService[F[_]] {
@@ -125,8 +116,9 @@ trait ClusteringWalletGrpcService[F[_]] {
   def getBalance(request: RequestId, ctx: Metadata): F[BalanceResponse]
 }
 
-class ClusteringWalletGrpcServiceImpl[F[_], G: ExceptionGenerator](service: WalletEventSourcing.WalletServiceIO[F], repo: WalletEventSourcing.WalletRepository[F])
-  (using transformers: MyTransformers[G])(using F: Async[F], FR: Raise[F, ServiceError], M: Monad[F], MT: MonadThrow[F])
+class ClusteringWalletGrpcServiceImpl[F[_], G: ExceptionGenerator]
+  (service: WalletEventSourcing.WalletServiceIO[F], repo: WalletEventSourcing.WalletRepository[F])(using transformers: MyTransformers[G])
+  (using F: Async[F], FR: Raise[F, ServiceError], M: Monad[F], MT: MonadThrow[F])
     extends ClusteringWalletGrpcService[F] {
   import transformers.optionTransformers
 
@@ -218,7 +210,8 @@ class ClusteringWalletFs2GrpcServiceImpl[G: ExceptionGenerator](service: Cluster
 
 class GrpcServerResource:
 
-    def helloService[G: ExceptionGenerator](wService: WalletEventSourcing.WalletServiceIO[Result], repo: WalletEventSourcing.WalletRepository[Result]): Resource[IO, ServerServiceDefinition] = {
+    def helloService[G: ExceptionGenerator](wService: WalletEventSourcing.WalletServiceIO[Result], repo: WalletEventSourcing.WalletRepository[Result])
+      : Resource[IO, ServerServiceDefinition] = {
 
       val transformers = new MyTransformers
       val sImpl = new ClusteringWalletGrpcServiceImpl[Result, G](wService, repo)(using transformers)

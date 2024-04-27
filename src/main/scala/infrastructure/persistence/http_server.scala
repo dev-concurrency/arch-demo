@@ -1,18 +1,14 @@
 package event_sourcing
 package examples
 
-import cats.effect.*
-import org.http4s.implicits.*
-import org.http4s.ember.server.*
-import org.http4s.*
-import com.comcast.ip4s.*
 import scala.concurrent.duration.*
 
-
-
-
-
+import cats.effect.*
+import com.comcast.ip4s.*
 import com.example.*
+import org.http4s.*
+import org.http4s.ember.server.*
+import org.http4s.implicits.*
 import org.http4s.server.Server
 
 class HttpServerResource(using ec: ExecutionContextExecutor):

@@ -2,9 +2,9 @@ package demo
 
 import akka.actor.typed.*
 import akka.actor.typed.scaladsl.Behaviors
-
+import org.json4s.DefaultFormats
+import org.json4s.Formats
 import org.json4s.given
-import org.json4s.{ DefaultFormats, Formats }
 import org.json4s.native.JsonMethods
 import org.json4s.native.Serialization
 

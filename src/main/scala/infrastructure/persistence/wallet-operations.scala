@@ -1,7 +1,6 @@
 package event_sourcing
 package examples
 
-
 object WalletEventSourcing:
 
     import akka.persistence.typed.PersistenceId
@@ -28,10 +27,8 @@ object WalletEventSourcing:
 
     import infrastructure.persistence.WalletDataModel.*
 
-
     import akka.persistence.cassandra.cleanup.Cleanup
     import akka.stream.scaladsl.{ Balance => _, * }
-
 
     import akka.event.Logging
 
@@ -57,9 +54,8 @@ object WalletEventSourcing:
     import io.scalaland.chimney.dsl.*
     import io.scalaland.chimney.*
 
-
     import cats.mtl.*
-    
+
     import doobie.hikari.HikariTransactor
     import doobie.implicits.*
 
@@ -68,16 +64,15 @@ object WalletEventSourcing:
 
     trait WalletRepositoryIO[F[_]]:
         def deleteWallet(id: String): F[Either[Throwable, Int]]
-    
-    class WalletRepositoryImpl[G: ExceptionGenerator](wRepo: WalletRepositoryIO[IO], transformers: MyTransformers[G]) extends WalletRepository[Result]:
+
+    class WalletRepositoryImpl[G: ExceptionGenerator](wRepo: WalletRepositoryIO[IO], transformers: MyTransformers[G])
+        extends WalletRepository[Result]:
         import transformers.*
         def deleteWallet(id: String): Result[Int] = wRepo.deleteWallet(id).transformInto[Result[Int]]
-        
-    class WalletRepositoryIOImpl(tx: HikariTransactor[IO]) extends WalletRepositoryIO[IO]:
-        def deleteWallet(id: String): IO[Either[Throwable, Int]] =
-          sql"DELETE FROM wallet WHERE id = $id".update.run.transact(tx).attempt
 
-        
+    class WalletRepositoryIOImpl(tx: HikariTransactor[IO]) extends WalletRepositoryIO[IO]:
+        def deleteWallet(id: String): IO[Either[Throwable, Int]] = sql"DELETE FROM wallet WHERE id = $id".update.run.transact(tx).attempt
+
     def reportError[F[_], A](code: TransportError, message: String)(using FR: Raise[F, ServiceError]): F[A] =
       code match {
         case TransportError.NotFound => FR.raise(ErrorsBuilder.notFoundError(message))

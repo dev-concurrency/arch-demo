@@ -1,12 +1,9 @@
 package com.example
 
-import hello.*
-
 import cats.*
 import cats.effect.*
-
-
 import cats.mtl.*
+import hello.*
 
 trait HWService[F[_]]:
     def hello(name: String, town: Option[String]): F[Greeting]

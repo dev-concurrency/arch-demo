@@ -1,3 +1,6 @@
+
+// format: off
+
 lazy val autoImportSettings = Seq(
   scalacOptions += Seq(
     "java.lang",
@@ -19,7 +22,41 @@ lazy val autoImportSettings = Seq(
     .mkString(start = "-Yimports:", sep = ",", end = ""),
 )
 
-// format: off
+lazy val commonSettings = Seq(
+  update / evictionWarningOptions := EvictionWarningOptions.empty,
+  scalaVersion := V.scalaLTSVersion,
+  organization := "org",
+  organizationName := "Demos",
+  semanticdbEnabled := true, // enable SemanticDB
+  ThisBuild / evictionErrorLevel := Level.Info,
+  dependencyOverrides ++= Seq(
+  ),
+  ThisBuild / resolvers += "Akka library repository".at("https://repo.akka.io/maven"),
+  ThisBuild / resolvers += "Confluent Maven Repository".at("https://packages.confluent.io/maven/"),
+)
+
+lazy val appSettings = Seq(
+  scalaVersion := V.scalaLatestVersion,
+  dependencyOverrides ++= Seq(
+  ),
+  scalacOptions ++=
+    Seq(
+      "-explain",
+      "-Ysafe-init",
+      "-deprecation",
+      "-feature",
+      "-Yretain-trees",
+      "-Xmax-inlines",
+      "50",
+      // "-Yexplicit-nulls",
+      // "-Wunused:all",
+    )
+  // ) ++ Seq("-new-syntax", "-rewrite")
+  // ) ++ Seq("-rewrite", "-indent")
+  // ) ++ Seq("-rewrite", "-source", "3.4-migration")
+)
+
+
 val V = new {
   val scalaLTSVersion      = "3.3.3"
   val scalaLatestVersion   = "3.4.1"
@@ -177,38 +214,6 @@ def mapGen(name: String) = {
   m.toMap
 }
 
-lazy val commonSettings = Seq(
-  update / evictionWarningOptions := EvictionWarningOptions.empty,
-  scalaVersion := V.scalaLTSVersion,
-  organization := "org",
-  organizationName := "Demos",
-  ThisBuild / evictionErrorLevel := Level.Info,
-  dependencyOverrides ++= Seq(
-  ),
-  ThisBuild / resolvers += "Akka library repository".at("https://repo.akka.io/maven"),
-  ThisBuild / resolvers += "Confluent Maven Repository".at("https://packages.confluent.io/maven/"),
-)
-
-lazy val appSettings = Seq(
-  scalaVersion := V.scalaLatestVersion,
-  dependencyOverrides ++= Seq(
-  ),
-  scalacOptions ++=
-    Seq(
-      "-explain",
-      "-Ysafe-init",
-      "-deprecation",
-      "-feature",
-      "-Yretain-trees",
-      "-Xmax-inlines",
-      "50",
-      // "-Yexplicit-nulls",
-      // "-Wunused:all",
-    )
-  // ) ++ Seq("-new-syntax", "-rewrite")
-  // ) ++ Seq("-rewrite", "-indent")
-  // ) ++ Seq("-rewrite", "-source", "3.4-migration")
-)
 
 lazy val restApi = project
   .in(file("modules/rest-api"))
@@ -250,9 +255,9 @@ lazy val avroApi = project
 lazy val root = project
   .in(file("."))
   .settings(autoImportSettings)
+  .settings(commonSettings)
   .settings(appSettings)
   .settings(
-    semanticdbEnabled := true,
     scalaVersion := V.scalaLatestVersion,
     // scalafmtOnCompile := true,
     Compile / run / fork := true,
@@ -268,6 +273,8 @@ lazy val root = project
       }
     },
     libraryDependencies ++= Seq(
+      Deps.commonsCompress,
+
       Deps.postgresql,
 
       Deps.doobiePostgresCirce,
@@ -377,10 +384,12 @@ lazy val scenarios = Map(
 
 ThisBuild / watchTriggeredMessage := Watch.clearScreenOnTrigger
 
+addCommandAlias("ll", "projects")
+addCommandAlias("cd", "project")
 addCommandAlias("c", "compile")
 addCommandAlias("t", "test")
 addCommandAlias("styleCheck", "scalafmtSbtCheck; scalafmtCheckAll")
-addCommandAlias("styleFix", "scalafmtSbt; scalafmtAll")
+addCommandAlias("styleFix", "scalafmtSbt; scalafmtAll; scalafix RemoveUnused; scalafix OrganizeImports")
 addCommandAlias("rl", "reload plugins; update; reload return")
 
 selectedScenario match {
