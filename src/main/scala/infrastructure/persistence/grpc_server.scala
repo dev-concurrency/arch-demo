@@ -8,6 +8,7 @@ import cats.implicits.*
 import com.example.*
 import com.google.rpc.Code
 import com.wallet.demo.clustering.grpc.admin.*
+import fs2.concurrent.Channel
 import fs2.grpc.syntax.all.*
 import infrastructure.persistence.WalletDataModel
 import io.grpc.*
@@ -36,6 +37,15 @@ class MyTransformers[G: ExceptionGenerator]:
             EitherT(result.map {
               case Right(value) => Right(value)
               case Left(error)  => Left(ErrorsBuilder.internalServerError(error.getMessage))
+            })
+          }
+
+    implicit def queueToResultTransformer: Transformer[IO[Either[Channel.Closed, Boolean]], Result[Boolean]] =
+      new Transformer[IO[Either[Channel.Closed, Boolean]], Result[Boolean]]:
+          def transform(result: IO[Either[Channel.Closed, Boolean]]): Result[Boolean] = {
+            EitherT(result.map {
+              case Right(value) => Right(value)
+              case Left(error)  => Left(ErrorsBuilder.internalServerError("Closed channel"))
             })
           }
 
@@ -105,7 +115,6 @@ case class OperationRequest(id: String, amount: Int) {
 }
 
 import cats.*
-
 import cats.mtl.*
 
 trait ClusteringWalletGrpcService[F[_]] {
@@ -210,7 +219,10 @@ class ClusteringWalletFs2GrpcServiceImpl[G: ExceptionGenerator](service: Cluster
 
 class GrpcServerResource:
 
-    def helloService[G: ExceptionGenerator](wService: WalletEventSourcing.WalletServiceIO[Result], repo: WalletEventSourcing.WalletRepository[Result])
+    def helloService[G: ExceptionGenerator]
+      (
+        wService: WalletEventSourcing.WalletServiceIO[Result],
+        repo: WalletEventSourcing.WalletRepository[Result])
       : Resource[IO, ServerServiceDefinition] = {
 
       val transformers = new MyTransformers

@@ -14,6 +14,8 @@ object WalletEventSourcing:
     import akka.cluster.Member
     import akka.cluster.MemberStatus
 
+    import fs2.concurrent.Channel
+
     import com.typesafe.config.Config
 
     import akka.Done
@@ -35,6 +37,7 @@ object WalletEventSourcing:
     import com.google.rpc.Code
 
     import com.example.*
+
 
     trait WalletServiceIO[F[_]]:
         def createWallet(id: String): F[Done]
@@ -62,8 +65,26 @@ object WalletEventSourcing:
     trait WalletRepository[F[_]]:
         def deleteWallet(id: String): F[Int]
 
+    trait WalletQueue[F[_]]:
+        def trySend(data: ProducerParams): F[Boolean]
+
     trait WalletRepositoryIO[F[_]]:
         def deleteWallet(id: String): F[Either[Throwable, Int]]
+
+    trait WalletQueueIO[F[_]]:
+        def trySend(data: ProducerParams): F[Either[Channel.Closed, Boolean]]
+
+    class WalletQueueIOImpl(queue: Channel[IO, ProducerParams]) extends WalletQueueIO[IO]:
+        def trySend(data: ProducerParams): IO[Either[Channel.Closed, Boolean]] = queue.trySend(data)
+
+    class WalletQueueImpl[G: ExceptionGenerator](queue: WalletQueueIO[IO], transformers: MyTransformers[G])
+        extends WalletQueue[Result]:
+        import transformers.queueToResultTransformer
+
+        def trySend(data: ProducerParams): Result[Boolean] = {
+          val r = queue.trySend(data)
+          r.transformInto[Result[Boolean]]
+        }
 
     class WalletRepositoryImpl[G: ExceptionGenerator](wRepo: WalletRepositoryIO[IO], transformers: MyTransformers[G])
         extends WalletRepository[Result]:
@@ -135,8 +156,11 @@ object WalletEventSourcing:
               }
           } yield done
 
-    class WalletServiceIOImpl[F[_]](wService: WalletService)
-        (using ec: ExecutionContextExecutor, F: Async[F], FR: Raise[F, ServiceError], M: Monad[F], MT: MonadThrow[F]) extends WalletServiceIO[F]:
+    class WalletServiceIOImpl[F[_]]
+        (
+          wService: WalletService,
+          queue: WalletQueue[F])(using ec: ExecutionContextExecutor, F: Async[F], FR: Raise[F, ServiceError], M: Monad[F], MT: MonadThrow[F])
+        extends WalletServiceIO[F]:
 
         def deleteWallet(id: String): F[Done] =
           for {
@@ -159,14 +183,19 @@ object WalletEventSourcing:
           } yield done
 
         def addCredit(id: String, value: Credit): F[Done] =
-          for {
-            res <- F.fromFuture(wService.addCredit(id, value).pure[F])
-            done <-
-              res match {
-                case Done                       => F.pure(Done)
-                case ResultError(code, message) => reportError(code, message)
-              }
-          } yield done
+            val record = org.integration.avro.transactions.CreditRequest.newBuilder()
+              .setId(id)
+              .setAmount(value.amount)
+              .build()
+            for {
+              res <- F.fromFuture(wService.addCredit(id, value).pure[F])
+              x <- queue.trySend(ProducerParams("topic", id, record, Map()))
+              done <-
+                res match {
+                  case Done                       => F.pure(Done)
+                  case ResultError(code, message) => reportError(code, message)
+                }
+            } yield done
 
         def addDebit(id: String, value: Debit): F[Done] =
           for {
@@ -344,6 +373,11 @@ object WalletEventSourcing:
                       ec
                     )
 
+                    import org.typelevel.log4cats.slf4j.Slf4jLogger
+                    import org.typelevel.log4cats.Logger
+
+                    given logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+
                     val grpcIO = cats.effect.Deferred[cats.effect.IO, Boolean].flatMap {
                       shutdown =>
                           grpcServerControl = Some(shutdown)
@@ -351,25 +385,41 @@ object WalletEventSourcing:
                           import akka.grpc.GrpcServiceException
                           import com.wallet.demo.clustering.grpc.admin.BadRequestError
 
+                          import fs2.concurrent.Channel
+
                           given generator: ExceptionGenerator[GrpcServiceException] with
                               def generateException(msg: String): Throwable =
                                   val e = com.example.ErrorsBuilder.badRequestError(msg)
                                   val error = BadRequestError(e.code, e.title, e.message)
                                   GrpcServiceException(Code.INVALID_ARGUMENT, msg, Seq(error))
 
-                          val wServiceIO = WalletEventSourcing.WalletServiceIOImpl[Result](ws)
+                          val cSer = new CustomSerializer
+
                           val resource =
                             for {
                               tx <- transactorResource
+
+                              queue <-
+                                Resource.make(Channel.unbounded[IO, ProducerParams])(
+                                  ch => IO(ch.close)
+                                )
+                              ioQueue = new WalletQueueIOImpl(queue)
+                              resultQueue = new WalletQueueImpl[GrpcServiceException](ioQueue, MyTransformers[GrpcServiceException])
+
+                              wServiceIO = WalletEventSourcing.WalletServiceIOImpl[Result](ws, resultQueue)
+                              producer = ProducerImpl(queue, cSer.serializer)
                               repo = WalletRepositoryIOImpl(tx)
                               wRepo = WalletRepositoryImpl[GrpcServiceException](repo, MyTransformers[GrpcServiceException])
                               serverDefinition <- grpcApi.helloService[GrpcServiceException](wServiceIO, wRepo)
                               server <- grpcApi.run[IO](serverDefinition)
-                            } yield server
+
+                            } yield (server, producer)
 
                           val x =
                             resource.evalMap(
-                              server => IO.pure(server.start())
+                              res => {
+                                res._2.init() *> IO.pure(res._1.start())
+                              }
                             ).useForever
 
                           IO.race(shutdown.get, x)
@@ -383,6 +433,7 @@ object WalletEventSourcing:
                     }
 
                     Future { grpcIO.evalOn(ctx.system.executionContext).unsafeRunSync() }
+
                     Future { httpIO.evalOn(ctx.system.executionContext).unsafeRunSync() }
 
                     Behaviors.same

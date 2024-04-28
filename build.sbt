@@ -82,7 +82,7 @@ val V = new {
   val akkaProjection       = "1.5.3"
   val cats                 = "2.10.0"
   val catsEffect           = "3.5.4"
-  val fs2                  = "3.10.0"
+  val fs2                  = "3.10.2"
   val iron                 = "2.5.0"
 
   val grpc                 = "1.56.0"
