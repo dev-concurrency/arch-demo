@@ -15,8 +15,16 @@ case class ProducerParams(topic: String, key: String, value: SpecificRecord, hea
 
 import fs2.concurrent.Channel
 
-import _root_.io.confluent.kafka.serializers.{ AbstractKafkaSchemaSerDeConfig, KafkaAvroSerializer }
+import _root_.io.confluent.kafka.serializers.{ 
+  AbstractKafkaSchemaSerDeConfig, 
+  KafkaAvroDeserializerConfig,
+  KafkaAvroSerializer, 
+  KafkaAvroDeserializer
+}
+
 import org.apache.kafka.common.serialization.Serializer as KSerializer
+import org.apache.kafka.common.serialization.Deserializer as KDeserializer
+
 import fs2.kafka.*
 
 import scala.jdk.CollectionConverters.*
@@ -63,3 +71,44 @@ class ProducerImpl(queue: Channel[IO, ProducerParams], serializer: KSerializer[S
           .drain
 
     def produce(value: ProducerParams): IO[Either[Channel.Closed, Unit]] = queue.send(value)
+
+class CustomDeserializer {
+    val kafkaAvroSerDeConfig = Map[String, Any](
+      AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG -> "http://localhost:18081",
+      AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS -> "true",
+      KafkaAvroDeserializerConfig.SPECIFIC_AVRO_READER_CONFIG -> true.toString,
+      AbstractKafkaSchemaSerDeConfig.VALUE_SUBJECT_NAME_STRATEGY -> "registry.strategy.RecordSubjectStrategy",
+      AbstractKafkaSchemaSerDeConfig.USE_LATEST_VERSION -> false.toString,
+    )
+
+    val kafkaAvroDeserializer = new KafkaAvroDeserializer()
+    kafkaAvroDeserializer.configure(kafkaAvroSerDeConfig.asJava, false)
+    
+    val deserializer = kafkaAvroDeserializer.asInstanceOf[KDeserializer[SpecificRecord]]
+}
+
+class ConsumerImpl(deserializer: KDeserializer[SpecificRecord]):
+
+    def processRecord(record: ConsumerRecord[String, SpecificRecord]): IO[Unit] =
+      IO(println(s"Processing record: ${record.value.asInstanceOf[org.integration.avro.transactions.CreditRequest]}"))
+      // IO(println(s"Processing record: ${record}"))
+
+    def init(): IO[Unit] =
+      val consumerSettings = ConsumerSettings(
+        keyDeserializer = Deserializer[IO, String],
+        valueDeserializer = Deserializer.delegate(deserializer)
+      ).withAutoOffsetReset(AutoOffsetReset.Earliest)
+        .withBootstrapServers("localhost:19092")
+        .withGroupId("group")
+
+      val stream =
+          KafkaConsumer
+            .stream(consumerSettings)
+            .subscribeTo("topic")
+            .records
+            .mapAsync(2) { committable =>
+              processRecord(committable.record).as(committable.offset)
+            }
+            .through(commitBatchWithin(5, 2.seconds))
+
+      stream.compile.drain

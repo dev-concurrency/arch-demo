@@ -37,6 +37,7 @@ object WalletEventSourcing:
     import com.google.rpc.Code
 
     import com.example.*
+    import demo.logging.syntax.*
 
 
     trait WalletServiceIO[F[_]]:
@@ -189,10 +190,11 @@ object WalletEventSourcing:
               .build()
             for {
               res <- F.fromFuture(wService.addCredit(id, value).pure[F])
-              x <- queue.trySend(ProducerParams("topic", id, record, Map()))
+              _ <- queue.trySend(ProducerParams("topic", id, record, Map()))
               done <-
                 res match {
-                  case Done                       => F.pure(Done)
+                  case Done                       =>
+                    F.pure(Done)
                   case ResultError(code, message) => reportError(code, message)
                 }
             } yield done
@@ -431,6 +433,13 @@ object WalletEventSourcing:
                           val x = httpApi.helloService.useForever
                           cats.effect.IO.race(shutdown.get, x)
                     }
+
+                    val cDeser = new CustomDeserializer
+                    val consumer = ConsumerImpl(cDeser.deserializer)
+                    Future { consumer.init().logError(er => {
+                                                        er.printStackTrace()
+                                                        "Error"
+                                                      }).evalOn(ctx.system.executionContext).unsafeRunSync() }
 
                     Future { grpcIO.evalOn(ctx.system.executionContext).unsafeRunSync() }
 
