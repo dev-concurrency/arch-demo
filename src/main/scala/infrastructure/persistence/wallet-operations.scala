@@ -37,8 +37,6 @@ object WalletEventSourcing:
     import com.google.rpc.Code
 
     import com.example.*
-    import demo.logging.syntax.*
-
 
     trait WalletServiceIO[F[_]]:
         def createWallet(id: String): F[Done]
@@ -193,8 +191,7 @@ object WalletEventSourcing:
               _ <- queue.trySend(ProducerParams("topic", id, record, Map()))
               done <-
                 res match {
-                  case Done                       =>
-                    F.pure(Done)
+                  case Done                       => F.pure(Done)
                   case ResultError(code, message) => reportError(code, message)
                 }
             } yield done
@@ -377,8 +374,11 @@ object WalletEventSourcing:
 
                     import org.typelevel.log4cats.slf4j.Slf4jLogger
                     import org.typelevel.log4cats.Logger
+                    import fs2.kafka.*
 
                     given logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+                    val cDeser = new CustomDeserializer
+                    val consumerData = ConsumerImpl2(cDeser.deserializer)
 
                     val grpcIO = cats.effect.Deferred[cats.effect.IO, Boolean].flatMap {
                       shutdown =>
@@ -397,7 +397,7 @@ object WalletEventSourcing:
 
                           val cSer = new CustomSerializer
 
-                          val resource =
+                          val resource: Resource[IO, (io.grpc.Server, ProducerImpl)] =
                             for {
                               tx <- transactorResource
 
@@ -410,21 +410,59 @@ object WalletEventSourcing:
 
                               wServiceIO = WalletEventSourcing.WalletServiceIOImpl[Result](ws, resultQueue)
                               producer = ProducerImpl(queue, cSer.serializer)
+
                               repo = WalletRepositoryIOImpl(tx)
                               wRepo = WalletRepositoryImpl[GrpcServiceException](repo, MyTransformers[GrpcServiceException])
                               serverDefinition <- grpcApi.helloService[GrpcServiceException](wServiceIO, wRepo)
                               server <- grpcApi.run[IO](serverDefinition)
 
                             } yield (server, producer)
+                          // val resource2: Resource[IO, KafkaConsumer[IO, String, org.apache.avro.specific.SpecificRecord] =
 
                           val x =
                             resource.evalMap(
                               res => {
-                                res._2.init() *> IO.pure(res._1.start())
+                                (res._2.init(), IO.pure(res._1.start())).mapN(
+                                  (a, c) => ()
+                                )
                               }
                             ).useForever
 
                           IO.race(shutdown.get, x)
+                    }
+
+                    val kConsumerIO = KafkaConsumer.resource(consumerData.consumerSettings).use {
+                      consumer =>
+
+                          val result: IO[Unit] = IO.uncancelable {
+                            poll => // [2]
+                              for {
+                                runFiber <- consumerData.run(consumer).start // [3]
+                                _ <- poll(runFiber.join).onCancel { // [4]
+                                       for {
+                                         _ <- IO(println("Starting graceful shutdown"))
+                                         _ <- consumer.stopConsuming // [5]
+                                         shutdownOutcome <- runFiber
+                                                              .join
+                                                              .timeoutTo[Outcome[IO, Throwable, Unit]]( // [6]
+                                                                20.seconds,
+                                                                IO.pure(
+                                                                  Outcome.Errored(new RuntimeException("Graceful shutdown timed out"))
+                                                                )
+                                                              )
+                                         _ <-
+                                           shutdownOutcome match { // [7]
+                                             case Outcome.Succeeded(_) => IO(println("Succeeded in graceful shutdown"))
+                                             case Outcome.Canceled()   => IO(println("Canceled in graceful shutdown")) >> runFiber.cancel
+                                             case Outcome.Errored(e)   =>
+                                               IO(println("Failed to shutdown gracefully")) >> runFiber.cancel >> IO
+                                                 .raiseError(e)
+                                           }
+                                       } yield ()
+                                     }
+                              } yield ()
+                          }
+                          result
                     }
                     val httpApi: HttpServerResource = HttpServerResource()
                     val httpIO = cats.effect.Deferred[cats.effect.IO, Boolean].flatMap {
@@ -434,12 +472,13 @@ object WalletEventSourcing:
                           cats.effect.IO.race(shutdown.get, x)
                     }
 
-                    val cDeser = new CustomDeserializer
-                    val consumer = ConsumerImpl(cDeser.deserializer)
-                    Future { consumer.init().logError(er => {
-                                                        er.printStackTrace()
-                                                        "Error"
-                                                      }).evalOn(ctx.system.executionContext).unsafeRunSync() }
+                    // val consumer = ConsumerImpl(cDeser.deserializer)
+                    // Future { consumer.init().logError(er => {
+                    //                                     er.printStackTrace()
+                    //                                     "Error"
+                    //                                   }).evalOn(ctx.system.executionContext).unsafeRunSync() }
+
+                    Future { kConsumerIO.evalOn(ctx.system.executionContext).unsafeRunSync() }
 
                     Future { grpcIO.evalOn(ctx.system.executionContext).unsafeRunSync() }
 
