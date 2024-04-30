@@ -337,6 +337,7 @@ object WalletEventSourcing:
 
         var grpcServerControl: Option[cats.effect.Deferred[cats.effect.IO, Boolean]] = None
         var httpServerControl: Option[cats.effect.Deferred[cats.effect.IO, Boolean]] = None
+        var kafkaConsumerControl: Option[cats.effect.Deferred[cats.effect.IO, Boolean]] = None
 
         def interactive
           (
@@ -435,27 +436,27 @@ object WalletEventSourcing:
                       consumer =>
 
                           val result: IO[Unit] = IO.uncancelable {
-                            poll => // [2]
+                            poll => 
                               for {
-                                runFiber <- consumerData.run(consumer).start // [3]
-                                _ <- poll(runFiber.join).onCancel { // [4]
+                                runFiber <- consumerData.run(consumer).start 
+                                _ <- poll(runFiber.join).onCancel { 
                                        for {
-                                         _ <- IO(println("Starting graceful shutdown"))
-                                         _ <- consumer.stopConsuming // [5]
+                                         _ <- IO(println("Starting Kafka consumer graceful shutdown"))
+                                         _ <- consumer.stopConsuming 
                                          shutdownOutcome <- runFiber
                                                               .join
-                                                              .timeoutTo[Outcome[IO, Throwable, Unit]]( // [6]
+                                                              .timeoutTo[Outcome[IO, Throwable, Unit]]( 
                                                                 20.seconds,
                                                                 IO.pure(
-                                                                  Outcome.Errored(new RuntimeException("Graceful shutdown timed out"))
+                                                                  Outcome.Errored(new RuntimeException("Graceful shutdown for Kafka consumer timed out"))
                                                                 )
                                                               )
                                          _ <-
-                                           shutdownOutcome match { // [7]
-                                             case Outcome.Succeeded(_) => IO(println("Succeeded in graceful shutdown"))
-                                             case Outcome.Canceled()   => IO(println("Canceled in graceful shutdown")) >> runFiber.cancel
+                                           shutdownOutcome match { 
+                                             case Outcome.Succeeded(_) => IO(println("Succeeded in Kafka consumer graceful shutdown"))
+                                             case Outcome.Canceled()   => IO(println("Canceled in Kafka consumer graceful shutdown")) >> runFiber.cancel
                                              case Outcome.Errored(e)   =>
-                                               IO(println("Failed to shutdown gracefully")) >> runFiber.cancel >> IO
+                                               IO(println("Failed to shutdown gracefully the Kafka consumer ")) >> runFiber.cancel >> IO
                                                  .raiseError(e)
                                            }
                                        } yield ()
@@ -464,6 +465,13 @@ object WalletEventSourcing:
                           }
                           result
                     }
+                    
+                    val kafkaConsumerIO = cats.effect.Deferred[cats.effect.IO, Boolean].flatMap {
+                      shutdown =>
+                          kafkaConsumerControl = Some(shutdown)
+                          cats.effect.IO.race(shutdown.get, kConsumerIO)
+                    }
+
                     val httpApi: HttpServerResource = HttpServerResource()
                     val httpIO = cats.effect.Deferred[cats.effect.IO, Boolean].flatMap {
                       shutdown =>
@@ -478,7 +486,7 @@ object WalletEventSourcing:
                     //                                     "Error"
                     //                                   }).evalOn(ctx.system.executionContext).unsafeRunSync() }
 
-                    Future { kConsumerIO.evalOn(ctx.system.executionContext).unsafeRunSync() }
+                    Future { kafkaConsumerIO.evalOn(ctx.system.executionContext).unsafeRunSync() }
 
                     Future { grpcIO.evalOn(ctx.system.executionContext).unsafeRunSync() }
 
@@ -507,6 +515,15 @@ object WalletEventSourcing:
                       }
                     ) // shutdown the server
                     httpServerControl = None
+                    kafkaConsumerControl.foreach(
+                      ser => {
+                        Future {
+                          val r = Try { ser.complete(true).unsafeRunSync() }
+                          println(s"Kafka Consumer Control completed: $r")
+                        }
+                      }
+                    ) // shutdown the server
+                    kafkaConsumerControl = None
                     Behaviors.same
                 }
 
