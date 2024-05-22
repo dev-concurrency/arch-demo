@@ -3,13 +3,13 @@
 
 addSbtPlugin("org.typelevel" % "sbt-fs2-grpc" % "2.7.14")
 
-addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.12.0")
+addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.12.1")
 addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.5.2")
 
 addSbtPlugin("com.thesamet"                    % "sbt-protoc"     % "1.0.7")
 libraryDependencies += "com.thesamet.scalapb" %% "compilerplugin" % "0.11.15"
 
-addSbtPlugin("com.disneystreaming.smithy4s" % "smithy4s-sbt-codegen" % "0.18.15")
+addSbtPlugin("com.disneystreaming.smithy4s" % "smithy4s-sbt-codegen" % "0.18.19")
 
 addSbtPlugin("com.github.sbt" % "sbt-avro" % "3.4.3")
 

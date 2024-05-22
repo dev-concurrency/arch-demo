@@ -11,15 +11,9 @@ object WalletEventSourcing:
     import akka.cluster.typed.*
     import akka.actor.ActorSystem as UntypedActorSystem
     import akka.cluster.ClusterEvent.*
-    import akka.cluster.Member
-    import akka.cluster.MemberStatus
-
-    import fs2.concurrent.Channel
 
     import com.typesafe.config.Config
 
-    import akka.Done
-    import akka.cluster.sharding.typed.scaladsl.ClusterSharding
     import akka.cluster.sharding.typed.scaladsl.Entity
 
     import infrastructure.persistence.WalletEntity
@@ -27,306 +21,24 @@ object WalletEventSourcing:
     import infrastructure.util.*
     // import infrastructure.util.EitherT_TypesConversion.*
 
-    import infrastructure.persistence.WalletDataModel.*
-
-    import akka.persistence.cassandra.cleanup.Cleanup
-    import akka.stream.scaladsl.{ Balance => _, * }
-
     import akka.event.Logging
 
     import com.google.rpc.Code
 
+    // composition
+    export WalletServices.*
+    export WalletServicesImpl.*
+    export ClusterInfrastructure.*
+
     import com.example.*
-
-    trait WalletServiceIO[F[_]]:
-        def createWallet(id: String): F[Done]
-        def deleteWallet(id: String): F[Done]
-        def addCredit(id: String, value: Credit): F[Done]
-        def addDebit(id: String, value: Debit): F[Done]
-        def getBalance(id: String): F[Balance]
-
-    trait WalletServiceIO2[F[_]]:
-        def createWallet(id: String): F[Done]
-        def deleteWallet(id: String): F[Done]
 
     import cats.*
     import cats.effect.*
     import cats.implicits.*
 
-    import io.scalaland.chimney.dsl.*
-    import io.scalaland.chimney.*
-
     import cats.mtl.*
 
     import doobie.hikari.HikariTransactor
-    import doobie.implicits.*
-
-    trait WalletRepository[F[_]]:
-        def deleteWallet(id: String): F[Int]
-
-    trait WalletQueue[F[_]]:
-        def trySend(data: ProducerParams): F[Boolean]
-
-    trait WalletRepositoryIO[F[_]]:
-        def deleteWallet(id: String): F[Either[Throwable, Int]]
-
-    trait WalletQueueIO[F[_]]:
-        def trySend(data: ProducerParams): F[Either[Channel.Closed, Boolean]]
-
-    class WalletQueueIOImpl(queue: Channel[IO, ProducerParams]) extends WalletQueueIO[IO]:
-        def trySend(data: ProducerParams): IO[Either[Channel.Closed, Boolean]] = queue.trySend(data)
-
-    class WalletQueueImpl[G: ExceptionGenerator](queue: WalletQueueIO[IO], transformers: MyTransformers[G])
-        extends WalletQueue[Result]:
-        import transformers.queueToResultTransformer
-
-        def trySend(data: ProducerParams): Result[Boolean] = {
-          val r = queue.trySend(data)
-          r.transformInto[Result[Boolean]]
-        }
-
-    class WalletRepositoryImpl[G: ExceptionGenerator](wRepo: WalletRepositoryIO[IO], transformers: MyTransformers[G])
-        extends WalletRepository[Result]:
-        import transformers.*
-        def deleteWallet(id: String): Result[Int] = wRepo.deleteWallet(id).transformInto[Result[Int]]
-
-    class WalletRepositoryIOImpl(tx: HikariTransactor[IO]) extends WalletRepositoryIO[IO]:
-        def deleteWallet(id: String): IO[Either[Throwable, Int]] = sql"DELETE FROM wallet WHERE id = $id".update.run.transact(tx).attempt
-
-    def reportError[F[_], A](code: TransportError, message: String)(using FR: Raise[F, ServiceError]): F[A] =
-      code match {
-        case TransportError.NotFound => FR.raise(ErrorsBuilder.notFoundError(message))
-        case _                       => FR.raise(ErrorsBuilder.internalServerError(message))
-      }
-
-    class WalletServiceIO2Impl[F[_]](entitySharding: WalletSharding)
-        (using sys: ActorSystem[Nothing], F: Async[F], FR: Raise[F, ServiceError], M: Monad[F], MT: MonadThrow[F]) extends WalletServiceIO2[F]:
-
-        given ec: ExecutionContextExecutor = sys.executionContext
-        given timeout: Timeout = demo.timeout
-
-        def createWallet(id: String): F[Done] =
-          for {
-            res <- F.fromFuture(entitySharding
-                     .entityRefFor(WalletEntity.typeKey, id)
-                     .ask(WalletEntity.CreateWalletCmd(_))
-                     .mapTo[Done | ResultError].pure[F])
-            done <-
-              res match {
-                case Done                       => F.pure(Done)
-                case ResultError(code, message) => reportError(code, message)
-              }
-          } yield done
-
-        def deleteWallet(id: String): F[Done] =
-          for {
-            res <- F.fromFuture(
-                     entitySharding
-                       .entityRefFor(WalletEntity.typeKey, id)
-                       .ask(WalletEntity.StopCmd(_))
-                       .mapTo[Done | ResultError].pure[F]
-                   )
-            done <-
-              res match {
-                case Done                       =>
-                  val persistenceIdParallelism = 10
-                  // val queries = PersistenceQuery(sys).readJournalFor[CassandraReadJournal](CassandraReadJournal.Identifier)
-                  // queries.currentPersistenceIds().mapAsync(persistenceIdParallelism)(pid =>
-                  //   println(s"pid: $pid")
-                  //   Future(())
-                  //   ).run()
-                  val cleanup = new Cleanup(sys)
-                  val res = Source.single(s"${WalletEntity.typeKey.name}|$id")
-                    .mapAsync(persistenceIdParallelism)(
-                      i => {
-                        println(s"Deleting: $i")
-                        // val rr = cleanup.deleteAllEvents(i, false)
-                        val rr = cleanup.deleteAll(i, false)
-                        rr.onComplete {
-                          case Failure(exception) => println(s"Error 1: $exception")
-                          case Success(value)     => println(s"Deleted 1: $value")
-                        }
-                        rr
-                      }
-                    )
-                    .runWith(Sink.ignore)
-                  F.fromFuture(res.pure[F])
-                case ResultError(code, message) => reportError(code, message)
-              }
-          } yield done
-
-    class WalletServiceIOImpl[F[_]]
-        (
-          wService: WalletService,
-          queue: WalletQueue[F])(using ec: ExecutionContextExecutor, F: Async[F], FR: Raise[F, ServiceError], M: Monad[F], MT: MonadThrow[F])
-        extends WalletServiceIO[F]:
-
-        def deleteWallet(id: String): F[Done] =
-          for {
-            res <- F.fromFuture(wService.deleteWallet(id).pure[F])
-            done <-
-              res match {
-                case Done                       => F.pure(Done)
-                case ResultError(code, message) => reportError(code, message)
-              }
-          } yield done
-
-        def createWallet(id: String): F[Done] =
-          for {
-            res <- F.fromFuture(wService.createWallet(id).pure[F])
-            done <-
-              res match {
-                case Done                       => F.pure(Done)
-                case ResultError(code, message) => reportError(code, message)
-              }
-          } yield done
-
-        def addCredit(id: String, value: Credit): F[Done] =
-            val record = org.integration.avro.transactions.CreditRequest.newBuilder()
-              .setId(id)
-              .setAmount(value.amount)
-              .build()
-            for {
-              res <- F.fromFuture(wService.addCredit(id, value).pure[F])
-              _ <- queue.trySend(ProducerParams("topic", id, record, Map()))
-              done <-
-                res match {
-                  case Done                       => F.pure(Done)
-                  case ResultError(code, message) => reportError(code, message)
-                }
-            } yield done
-
-        def addDebit(id: String, value: Debit): F[Done] =
-          for {
-            res <- F.fromFuture(wService.addDebit(id, value).pure[F])
-            done <-
-              res match {
-                case Done                       => F.pure(Done)
-                case ResultError(code, message) => reportError(code, message)
-              }
-          } yield done
-
-        def getBalance(id: String): F[Balance] =
-          for {
-            res <- F.fromFuture(wService.getBalance(id).pure[F])
-            balance <-
-              res match {
-                case b: Balance                 => F.pure(b)
-                case ResultError(code, message) => reportError(code, message)
-              }
-          } yield balance
-
-    trait WalletService:
-        def createWallet(id: String): Future[Done | ResultError]
-        def deleteWallet(id: String): Future[Done | ResultError]
-        def addCredit(id: String, value: Credit): Future[Done | ResultError]
-        def addDebit(id: String, value: Debit): Future[Done | ResultError]
-        def getBalance(id: String): Future[Balance | ResultError]
-
-    class WalletServiceImpl
-        (
-          entitySharding: WalletSharding)(using sys: ActorSystem[Nothing]) extends WalletService:
-
-        given ec: ExecutionContextExecutor = sys.executionContext
-        given timeout: Timeout = demo.timeout
-
-        def deleteWallet(id: String): Future[Done | ResultError] = entitySharding
-          .entityRefFor(WalletEntity.typeKey, id)
-          .ask(WalletEntity.StopCmd(_))
-          .mapTo[Done | ResultError].map:
-              case d: Done        =>
-                val persistenceIdParallelism = 10
-                // val queries = PersistenceQuery(sys).readJournalFor[CassandraReadJournal](CassandraReadJournal.Identifier)
-                // queries.currentPersistenceIds().mapAsync(persistenceIdParallelism)(pid =>
-                //   println(s"pid: $pid")
-                //   Future(())
-                //   ).run()
-                val cleanup = new Cleanup(sys)
-                Source.single(s"${WalletEntity.typeKey.name}|$id")
-                  .mapAsync(persistenceIdParallelism)(
-                    i => {
-                      println(s"Deleting: $i")
-                      // val rr = cleanup.deleteAllEvents(i, false)
-                      val rr = cleanup.deleteAll(i, false)
-                      rr.onComplete {
-                        case Failure(exception) => println(s"Error 1: $exception")
-                        case Success(value)     => println(s"Deleted 1: $value")
-                      }
-                      rr
-                    }
-                  )
-                  .runWith(Sink.ignore)
-                d
-              case e: ResultError => e
-
-        def createWallet(id: String): Future[Done | ResultError] = entitySharding
-          .entityRefFor(WalletEntity.typeKey, id)
-          .ask(WalletEntity.CreateWalletCmd(_))
-          .mapTo[Done | ResultError]
-
-        def addCredit(id: String, value: Credit): Future[Done | ResultError] = entitySharding
-          .entityRefFor(WalletEntity.typeKey, id)
-          .ask(WalletEntity.CreditCmd(value.amount, _))
-          .mapTo[Done | ResultError]
-
-        def addDebit(id: String, value: Debit): Future[Done | ResultError] = entitySharding
-          .entityRefFor(WalletEntity.typeKey, id)
-          .ask(WalletEntity.DebitCmd(value.amount, _))
-          .mapTo[Done | ResultError]
-
-        def getBalance(id: String): Future[Balance | ResultError] = entitySharding
-          .entityRefFor(WalletEntity.typeKey, id)
-          .ask(WalletEntity.GetBalanceCmd(_))
-          .mapTo[Balance | ResultError]
-
-    class WalletSharding(using sys: ActorSystem[Nothing]):
-        val sharding: ClusterSharding = ClusterSharding(sys)
-        export sharding.*
-
-    object ClusterStateChanges:
-
-        def apply(): Behavior[MemberEvent] = Behaviors.setup:
-            ctx =>
-                Behaviors.receiveMessage:
-                    case MemberJoined(member: Member) =>
-                      ctx.log.info("MemberJoined: {}", member.uniqueAddress)
-                      Behaviors.same
-
-                    case MemberWeaklyUp(member: Member) =>
-                      ctx.log.info("MemberWeaklyUp: {}", member.uniqueAddress)
-                      Behaviors.same
-
-                    case MemberUp(member: Member) =>
-                      ctx.log.info("MemberUp: {}", member.uniqueAddress)
-                      Behaviors.same
-
-                    case MemberLeft(member: Member) =>
-                      ctx.log.info("MemberLeft: {}", member.uniqueAddress)
-                      Behaviors.same
-
-                    case MemberPreparingForShutdown(member: Member) =>
-                      ctx.log.info("MemberPreparingForShutdown: {}", member.uniqueAddress)
-                      Behaviors.same
-
-                    case MemberReadyForShutdown(member: Member) =>
-                      ctx.log.info("MemberReadyForShutdown: {}", member.uniqueAddress)
-                      Behaviors.same
-
-                    case MemberExited(member: Member) =>
-                      ctx.log.info("MemberExited: {}", member.uniqueAddress)
-                      Behaviors.same
-
-                    case MemberDowned(member: Member) =>
-                      ctx.log.info("MemberDowned: {}", member.uniqueAddress)
-                      Behaviors.same
-
-                    case MemberRemoved(member: Member, previousStatus: MemberStatus) =>
-                      ctx.log.info2(
-                        "MemberRemoved: {}, previousStatus: {}",
-                        member.uniqueAddress,
-                        previousStatus
-                      )
-                      Behaviors.same
 
     object Root:
         trait Command
@@ -436,23 +148,25 @@ object WalletEventSourcing:
                       consumer =>
 
                           val result: IO[Unit] = IO.uncancelable {
-                            poll => 
+                            poll =>
                               for {
-                                runFiber <- consumerData.run(consumer).start 
-                                _ <- poll(runFiber.join).onCancel { 
+                                runFiber <- consumerData.run(consumer).start
+                                _ <- poll(runFiber.join).onCancel {
                                        for {
                                          _ <- IO(println("Starting Kafka consumer graceful shutdown"))
-                                         _ <- consumer.stopConsuming 
+                                         _ <- consumer.stopConsuming
                                          shutdownOutcome <- runFiber
                                                               .join
-                                                              .timeoutTo[Outcome[IO, Throwable, Unit]]( 
+                                                              .timeoutTo[Outcome[IO, Throwable, Unit]](
                                                                 20.seconds,
                                                                 IO.pure(
-                                                                  Outcome.Errored(new RuntimeException("Graceful shutdown for Kafka consumer timed out"))
+                                                                  Outcome.Errored(
+                                                                    new RuntimeException("Graceful shutdown for Kafka consumer timed out")
+                                                                  )
                                                                 )
                                                               )
                                          _ <-
-                                           shutdownOutcome match { 
+                                           shutdownOutcome match {
                                              case Outcome.Succeeded(_) => IO(println("Succeeded in Kafka consumer graceful shutdown"))
                                              case Outcome.Canceled()   => IO(println("Canceled in Kafka consumer graceful shutdown")) >> runFiber.cancel
                                              case Outcome.Errored(e)   =>
@@ -465,7 +179,7 @@ object WalletEventSourcing:
                           }
                           result
                     }
-                    
+
                     val kafkaConsumerIO = cats.effect.Deferred[cats.effect.IO, Boolean].flatMap {
                       shutdown =>
                           kafkaConsumerControl = Some(shutdown)
@@ -552,6 +266,7 @@ object WalletEventSourcing:
                 cluster.subscriptions ! Subscribe(subscriber, classOf[MemberEvent])
 
                 val walletSharding = WalletSharding()
+                val adapter = new infrastructure.persistence.AccountDetachedModelsAdapter()
 
                 walletSharding.init(
                   Entity(WalletEntity.typeKey)(createBehavior =
@@ -560,13 +275,14 @@ object WalletEventSourcing:
                         PersistenceId(
                           WalletEntity.typeKey.name,
                           entityContext.entityId,
-                        )
+                        ),
+                        adapter
                       )
                   )
                 )
 
-                val wProjection = new WalletProjection()
-                wProjection.init()
+                new WalletProjection()
+                // wProjection.init()
 
                 // val grpcApi: ServerModule.gRPCApi = ServerModule.gRPCApi()
                 val grpcApi: GrpcServerResource = GrpcServerResource()

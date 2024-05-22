@@ -9,13 +9,8 @@ import com.example.*
 import com.google.rpc.Code
 import com.wallet.demo.clustering.grpc.admin.*
 import fs2.concurrent.Channel
-import fs2.grpc.syntax.all.*
-import infrastructure.persistence.WalletDataModel
 import io.grpc.*
-import io.grpc.ServerServiceDefinition
-import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder
-import io.grpc.protobuf.services.ProtoReflectionService
-import io.scalaland.chimney.*
+import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.dsl.*
 
 trait ExceptionGenerator[F]:
@@ -115,7 +110,6 @@ case class OperationRequest(id: String, amount: Int) {
 }
 
 import cats.*
-import cats.mtl.*
 
 trait ClusteringWalletGrpcService[F[_]] {
   def createWallet(request: RequestId, ctx: Metadata): F[Response]
@@ -123,118 +117,7 @@ trait ClusteringWalletGrpcService[F[_]] {
   def addCredit(request: CreditRequest, ctx: Metadata): F[Response]
   def addDebit(request: DebitRequest, ctx: Metadata): F[Response]
   def getBalance(request: RequestId, ctx: Metadata): F[BalanceResponse]
-}
 
-class ClusteringWalletGrpcServiceImpl[F[_], G: ExceptionGenerator]
-  (service: WalletEventSourcing.WalletServiceIO[F], repo: WalletEventSourcing.WalletRepository[F])(using transformers: MyTransformers[G])
-  (using F: Async[F], FR: Raise[F, ServiceError], M: Monad[F], MT: MonadThrow[F])
-    extends ClusteringWalletGrpcService[F] {
-  import transformers.optionTransformers
-
-  def cha(id3: RequestId3): F[Unit] =
-    if id3.id.startsWith("x") then
-        FR.raise(ErrorsBuilder.forbiddenError("id cannot start with x"))
-    else
-        F.pure(())
-
-  def chb(request: RequestId): F[RequestId3] = {
-    val res = Try(request.transformInto[RequestId3]).toEither
-    res match {
-      case Right(r) => r.pure[F]
-      case Left(e)  => FR.raise(ErrorsBuilder.badRequestError(e.getMessage))
-    }
-  }
-
-  // def createWallet(request: RequestId, ctx: Metadata): F[Response] =
-  //   for {
-  //     r <- chb(request)
-  //     _ <- cha(r)
-  //   } yield Response(r.id)
-  // def deleteWallet(request: RequestId, ctx: Metadata): F[Response] = ??? // IO(Response("x"))
-
-  private def validateNonNullId(request: RequestId): F[RequestId3] =
-      val res = Try(request.transformInto[RequestId3]).toEither
-      res match
-        case Right(r) => r.pure[F]
-        case Left(e)  => FR.raise(ErrorsBuilder.badRequestError(e.getMessage))
-
-  private def validateCreditRequest(request: CreditRequest): F[OperationRequest] =
-      val res = Try(request.transformInto[OperationRequest]).toEither
-      res match
-        case Right(r) => r.pure[F]
-        case Left(e)  => FR.raise(ErrorsBuilder.badRequestError(e.getMessage))
-
-  private def validateDebitRequest(request: DebitRequest): F[OperationRequest] =
-      val res = Try(request.transformInto[OperationRequest]).toEither
-      res match
-        case Right(r) => r.pure[F]
-        case Left(e)  => FR.raise(ErrorsBuilder.badRequestError(e.getMessage))
-
-  def createWallet(request: RequestId, ctx: Metadata): F[Response] =
-    for {
-      r <- validateNonNullId(request)
-      res <- service.createWallet(r.id)
-    } yield Response(Some(r.id))
-
-  def deleteWallet(request: RequestId, ctx: Metadata): F[Response] =
-    for {
-      r <- validateNonNullId(request)
-      _ <- service.deleteWallet(r.id)
-      _ <- repo.deleteWallet(r.id)
-    } yield Response(Some(r.id))
-
-  def addCredit(request: CreditRequest, ctx: Metadata): F[Response] =
-    for {
-      r <- validateCreditRequest(request)
-      res <- service.addCredit(r.id, WalletDataModel.Credit(r.amount))
-    } yield Response(Some(r.id))
-
-  def addDebit(request: DebitRequest, ctx: Metadata): F[Response] =
-    for {
-      r <- validateDebitRequest(request)
-      res <- service.addDebit(r.id, WalletDataModel.Debit(r.amount))
-    } yield Response(Some(r.id))
-
-  def getBalance(request: RequestId, ctx: Metadata): F[BalanceResponse] =
-    // BalanceResponse(100).pure[F]
-    // MT.raiseError(ErrorsBuilder.notFoundError("Not found"))
-    // FR.raise(ErrorsBuilder.badRequestError("bad request"))
-    for {
-      r <- validateNonNullId(request)
-      res <- service.getBalance(r.id)
-    } yield BalanceResponse(res.value)
+  def operation(request: rpcOperationRequest, ctx: Metadata): F[rpcOperationResponse]
 
 }
-
-class ClusteringWalletFs2GrpcServiceImpl[G: ExceptionGenerator](service: ClusteringWalletGrpcService[Result], transformers: MyTransformers[G])
-    extends ClusteringWalletServiceFs2Grpc[IO, Metadata] {
-  import transformers.othersTransformers
-
-  def createWallet(request: RequestId, ctx: Metadata) = service.createWallet(request, ctx).transformInto[IO[Response]]
-  def deleteWallet(request: RequestId, ctx: Metadata) = service.deleteWallet(request, ctx).transformInto[IO[Response]]
-  def addCredit(request: CreditRequest, ctx: Metadata) = service.addCredit(request, ctx).transformInto[IO[Response]]
-  def addDebit(request: DebitRequest, ctx: Metadata) = service.addDebit(request, ctx).transformInto[IO[Response]]
-  def getBalance(request: RequestId, ctx: Metadata) = service.getBalance(request, ctx).transformInto[IO[BalanceResponse]]
-}
-
-class GrpcServerResource:
-
-    def helloService[G: ExceptionGenerator]
-      (
-        wService: WalletEventSourcing.WalletServiceIO[Result],
-        repo: WalletEventSourcing.WalletRepository[Result])
-      : Resource[IO, ServerServiceDefinition] = {
-
-      val transformers = new MyTransformers
-      val sImpl = new ClusteringWalletGrpcServiceImpl[Result, G](wService, repo)(using transformers)
-
-      ClusteringWalletServiceFs2Grpc.bindServiceResource[IO](
-        new ClusteringWalletFs2GrpcServiceImpl[G](sImpl, transformers)
-      )
-    }
-
-    def run[F[_]: Async](service: ServerServiceDefinition): Resource[F, Server] = NettyServerBuilder
-      .forPort(8080)
-      .addService(service)
-      .addService(ProtoReflectionService.newInstance())
-      .resource[F]

@@ -59,8 +59,8 @@ lazy val appSettings = Seq(
 
 val V = new {
   val scalaLTSVersion      = "3.3.3"
-  val scalaLatestVersion   = "3.4.1"
-
+  // val scalaLTSVersion      = "3.4.2"
+  val scalaLatestVersion   = "3.4.2"
   val distage              = "1.2.3"
   val logstage             = distage
   val scalatest            = "3.2.18"
@@ -69,7 +69,6 @@ val V = new {
   val zio                  = "2.0.21"
   val zioCats              = "23.0.0.8"
   val circeGeneric         = "0.14.6"
-
   val akkaVersion          = "2.9.2"
   val akkaGrpc             = "2.4.1"
   val kafkaVersion         = "5.0.0"
@@ -84,40 +83,26 @@ val V = new {
   val catsEffect           = "3.5.4"
   val fs2                  = "3.10.2"
   val iron                 = "2.5.0"
-
   val grpc                 = "1.56.0"
   val scalapbCommonProtos  = "2.9.6-0"
   val avroCompiler         = "1.11.3"
-  
   val chimney              = "0.8.5"
-
   val doobie               = "1.0.0-RC5"
   val skunk                = "1.1.0-M3"
-
   val postgress            = "42.7.3"
   val commonsCompress      = "1.26.1"
-  
   // https://packages.confluent.io/maven/io/confluent/kafka-avro-serializer/
   val kafkaAvroSerializer  = "7.6.1"
-  
   val smithytranslateTraitsVersion = "0.5.3"
   val http4s                       = "0.23.26"
-
   val scalapb                      = "0.11.15"
-
   val avroCompilerVersion          = "1.11.3"
-
   val fs2Kafka                     = "3.5.1"
-
-  
 }
 
 val Deps = new {
-
       val commonsCompress            = "org.apache.commons" % "commons-compress"  % V.commonsCompress 
-
       val postgresql                 = "org.postgresql" %  "postgresql"           % V.postgress
-
       // val doobieRefined     = "org.tpolecat" %% "doobie-refined" % V.doobie
       val doobieCore                 = "org.tpolecat"  %% "doobie-core"           % V.doobie
       val doobieHikari               = "org.tpolecat"  %% "doobie-hikari"         % V.doobie
@@ -225,6 +210,7 @@ lazy val restApi = project
       "com.disneystreaming.smithy4s" %% "smithy4s-http4s"         % smithy4sVersion.value,
       "com.disneystreaming.smithy"   %  "smithytranslate-traits"  % V.smithytranslateTraitsVersion,
     ),
+    // Compile / smithy4sOutputDir := (Compile / baseDirectory).value / "src/main/scala/smithy",
   )
 
 lazy val grpcApi = project
@@ -239,6 +225,8 @@ lazy val grpcApi = project
       Deps.scalapbProtobufu,
     ),
     PB.protocVersion := "4.26.1",
+    // fs2GrpcOutputPath := (Compile / baseDirectory).value / "src/main/scala/fs2-grpc",
+    // scalapbProtobufDirectory := (Compile / baseDirectory).value / "src/main/scala/scalapb",
   )
 
 
@@ -340,8 +328,27 @@ lazy val root = project
   .dependsOn(restApi)
   .dependsOn(grpcApi)
   .dependsOn(avroApi)
+  .dependsOn(journal_events_akka_event_sourced)
+  // .aggregate(journal_events_akka_event_sourced)
 
 // format: on
+
+lazy val base_akka_event_sourced = project
+  .in(file("modules/event-sourced/base"))
+  .settings(commonSettings)
+
+lazy val journal_events_akka_event_sourced = project
+  .in(file("modules/event-sourced/events"))
+  .settings(commonSettings)
+  .dependsOn(base_akka_event_sourced)
+  // .aggregate(base_akka_event_sourced)
+  .settings(
+    Compile / PB.targets := Seq(
+      scalapb.gen() -> (Compile / sourceManaged).value / "scalapb"
+    ),
+    PB.protocVersion := "3.25.2",
+    libraryDependencies += Deps.scalapbProtobufu,
+  )
 
 val scenario1 = Seq(
   "import demo.examples.*",

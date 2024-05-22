@@ -128,3 +128,53 @@ lstop:
     kill -9 $(cat .promtail.pid)
     rm .loki.pid
     rm .promtail.pid
+
+gen-grpc-web-stubs_1:
+    #!/usr/bin/env bash
+    set -euxo pipefail
+
+    DIR="modules/grpc-api/src/main/protobuf"
+    APP_DIR="clients/grpc-web"
+    OUT_DIR="${APP_DIR}/out"
+    mkdir -p $OUT_DIR
+    MODE="grpcweb"
+    MODE="grpcwebtext"
+
+    protoc -I=$DIR -I=$PROTOS_LIB_DIR service-clustering.proto scalapb/scalapb.proto \
+      --js_out=import_style=commonjs:$OUT_DIR \
+      --grpc-web_out=import_style=commonjs,mode=$MODE:$OUT_DIR  
+    
+    cd $APP_DIR
+    npm install
+    npx webpack
+
+gen-grpc-web-stubs:
+    #!/usr/bin/env bash
+    set -euxo pipefail
+    
+    APP_DIR="clients/grpc-web-vue"
+    cd $APP_DIR
+    npm install
+    npx buf generate proto/service-clustering.proto
+# npm run dev
+
+format-protobufs:
+    #!/usr/bin/env bash
+    set -euxo pipefail
+    
+    cpwd=$(pwd)
+    cd modules/event-sourced
+    buf format . -w
+    cd $cpwd
+    cd modules/grpc-api
+    buf format . -w
+
+gen-proto-docs:
+    #!/usr/bin/env bash
+    set -euxo pipefail
+    # https://github.com/pseudomuto/protoc-gen-doc?tab=readme-ov-file
+    DIR="modules/grpc-api/src/main/protobuf"
+    DOC_DIR=protobuf-docs
+    rm -rf $DOC_DIR
+    mkdir -p $DOC_DIR
+    protoc --proto_path=$PROTOS_LIB_DIR --proto_path=$DIR --doc_out=$DOC_DIR --doc_opt=html,index.html $DIR/*.proto

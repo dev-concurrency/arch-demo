@@ -1,0 +1,18 @@
+http:
+  middlewares:
+    test-grpcweb:
+      grpcWeb:
+        allowOrigins:
+          - "*"
+  routers:
+    to-target:
+      middlewares:
+        - test-grpcweb
+      rule: "PathPrefix(`/`)"
+      service: arch-demo
+
+  services:
+    arch-demo:
+      loadBalancer:
+        servers:
+        - url: h2c://0.0.0.0:8080

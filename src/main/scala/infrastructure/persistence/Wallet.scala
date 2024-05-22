@@ -136,7 +136,7 @@ object WalletEntity:
         case WalletCreated() => State()
         case _               => throw new IllegalStateException(s"unexpected event [$event] in empty state")
 
-    def apply(persistenceId: PersistenceId): Behavior[Command] = Behaviors.setup[Command]:
+    def apply(persistenceId: PersistenceId, adapter: AccountDetachedModelsAdapter): Behavior[Command] = Behaviors.setup[Command]:
         context =>
             EventSourcedBehavior.withEnforcedReplies[Command, Event, Option[State]](
               persistenceId,
@@ -158,3 +158,4 @@ object WalletEntity:
                   case (state, _: WalletCreated) => Set("wallet-created", "UPSERT")
                   case (state, _: CreditAdded)   => Set("credit-added", "UPSERT")
                   case (state, _: DebitAdded)    => Set("debit-added", "UPSERT")
+        // .eventAdapter(adapter)

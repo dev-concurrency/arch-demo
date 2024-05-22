@@ -2,10 +2,9 @@ syntax = "proto3";
 
 package com.wallet.demo.grpc.admin;
 
-import "scalapb/scalapb.proto";
 import "google/protobuf/wrappers.proto";
-
 import "opts/my_opts.proto";
+import "scalapb/scalapb.proto";
 
 option (scalapb.options) = {
   scope: FILE
@@ -28,26 +27,43 @@ message MyMessage {
 }
 
 service WalletService {
-    rpc addCredit (CreditRequest) returns (Response) {}
-    rpc addDebit(DebitRequest) returns (Response) {}
-    rpc getBalance(Request) returns (BalanceResponse) {}
+  rpc addCredit(CreditRequest) returns (Response) {}
+  rpc addDebit(DebitRequest) returns (Response) {}
+  rpc getBalance(Request) returns (BalanceResponse) {}
 }
 
-message CreditRequest{
-    int32 amount = 1;
+message CreditRequest {
+  int32 amount = 1;
 }
 
-message DebitRequest{
-    int32 amount = 1;
+message DebitRequest {
+  int32 amount = 1;
 }
 
-message Request{
+message Request {}
+
+message Response {
+  google.protobuf.StringValue message = 1 [
+    (scalapb.field).no_box = true,
+    (scalapb.field).required = true
+  ];
 }
 
-message Response{
-  google.protobuf.StringValue message = 1 [(scalapb.field).no_box = true, (scalapb.field).required = true];
+message BalanceResponse {
+  int64 balance = 1;
 }
 
-message BalanceResponse{
-    int64 balance = 1;
+message MsgList {
+  repeated Msg messages = 1;
+}
+
+message Msg {
+  google.protobuf.StringValue message = 1 [
+    (scalapb.field).no_box = true,
+    (scalapb.field).required = true
+  ];
+  google.protobuf.Int32Value num = 2 [
+    (scalapb.field).no_box = true,
+    (scalapb.field).required = true
+  ];
 }

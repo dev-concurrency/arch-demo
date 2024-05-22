@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package com.journal.account.events;
+
+import "com/journal/account/data_model.proto";
+import "com/journal/common/data_model.proto";
+import "google/protobuf/wrappers.proto";
+import "scalapb/scalapb.proto";
+
+option (scalapb.options) = {
+  scope: FILE
+  package_name: "com.journal.account.events"
+  flat_package: true
+  single_file: true
+  java_conversions: false
+  import: "infrastructure.journal.*"
+  preamble: "sealed trait Event extends JournalSerializable"
+  lenses: true
+  getters: true
+  retain_source_code_info: false
+  no_default_values_in_constructor: false
+  preserve_unknown_fields: false
+  enum_value_naming: CAMEL_CASE
+  enum_strip_prefix: false
+  scala3_sources: true
+};
+
+message WalletCreated {
+  option (scalapb.message).extends = "Event";
+}
+
+// message CreditAdded {
+//   option (scalapb.message).extends = "Event";
+
+//   google.protobuf.Int32Value amount = 1 [
+//     (scalapb.field).no_box = true,
+//     (scalapb.field).required = true
+//   ];
+// }
+
+message CreditAdded {
+  option (scalapb.message).extends = "Event";
+
+  google.protobuf.Int32Value amount_v1 = 1;
+  NewAmount amount = 2;
+}
+
+message DebitAdded {
+  option (scalapb.message).extends = "Event";
+
+  google.protobuf.Int32Value amount = 1 [
+    (scalapb.field).no_box = true,
+    (scalapb.field).required = true
+  ];
+}
+
+message NewAmount {
+  google.protobuf.Int32Value amount = 1 [
+    (scalapb.field).no_box = true,
+    (scalapb.field).required = true
+  ];
+
+  google.protobuf.StringValue id = 2 [
+    (scalapb.field).no_box = true,
+    (scalapb.field).required = true
+  ];
+}

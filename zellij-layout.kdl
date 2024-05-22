@@ -1,33 +1,66 @@
 layout {
     
-    pane size=1 borderless=true {
-        plugin location="tab-bar"
+    pane_template name="default_pane_template" {
+             pane split_direction="horizontal" {
+                 children
+             }
     }
-
-    pane split_direction="vertical" {
-        pane split_direction="horizontal" {
-            pane{
-                name "sbt console"
-                command "sbt"
+    
+    pane_template name="development_pane_template" {
+             pane split_direction="horizontal" {
+                 children
+                 pane size="30%" {
+                    cwd "code"
+                 }
+             }
+    }
+    
+    tab_template name="base_tab_template" {
+        pane size=1 borderless=true {
+            plugin location="zellij:tab-bar"
+        }
+        pane split_direction="Vertical" {
+            children
+        }
+        pane size=2 borderless=true {
+            plugin location="zellij:status-bar"
+        }
+    }
+    
+    
+    base_tab_template name="Development (1)" focus=true {
+        development_pane_template split_direction="vertical" {
+            pane focus=true{ }
+            pane {
+                cwd "clients/grpc-web-vue"
+                name "client-grpc-web-vue"
             }
-            pane{
+            pane {
+                cwd "clients/grpc-web-vue"
+                name "Vuejs run"
+                command "npm"
+                args "run" "dev"
+                start_suspended true
 
             }
         }
-        pane split_direction="horizontal" {
-            pane{
+    }
+    
+    base_tab_template name="External apps (2)" {
+        default_pane_template split_direction="vertical" {
+            pane size="20%" focus=true{
                 name "gRPC UI tool"
                 command "grpcui"
                 args "-plaintext" "0.0.0.0:8080"
                 start_suspended true
             }
-            pane{
-                
+            pane {
+              cwd "clients/traefik"
+              name "traefik"
+              command "traefik"
+              start_suspended true
             }
         }
     }
 
-    pane size=2 borderless=true {
-        plugin location="status-bar"
-    }
 }
