@@ -1,6 +1,8 @@
 package event_sourcing
 package examples
 
+import com.typesafe.config.Config
+
 object WalletEventSourcing:
 
     import akka.persistence.typed.PersistenceId
@@ -54,9 +56,8 @@ object WalletEventSourcing:
         def interactive
           (
             config: Config,
-            grpcApi: GrpcServerResource
+            grpcApi: GrpcServerResource,
             // , grpcApi: ServerModule.gRPCApi
-            ,
             ws: WalletEventSourcing.WalletService)
           : Behavior[Command] = Behaviors.setup[
           Command
@@ -303,7 +304,7 @@ object WalletOperations:
 
     def start1 =
         // akka.loglevel = "DEBUG"
-        val conf = ConfigFactory.parseString(
+        val conf: Config = ConfigFactory.parseString(
           """
              application.local.config.first = true
              akka.remote.artery.canonical.port = 2551

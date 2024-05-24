@@ -45,7 +45,7 @@ notes.txt
 notes.adoc
 logs/
 
-src/main/scala/components/
+# src/main/scala/components/
 *.scalax
 modules/grpc-api/src/main/scala/
 modules/rest-api/src/main/scala/

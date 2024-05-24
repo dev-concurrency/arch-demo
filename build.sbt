@@ -61,7 +61,7 @@ val V = new {
   val scalaLTSVersion      = "3.3.3"
   // val scalaLTSVersion      = "3.4.2"
   val scalaLatestVersion   = "3.4.2"
-  val distage              = "1.2.3"
+  val distage              = "1.2.8"
   val logstage             = distage
   val scalatest            = "3.2.18"
   val scalacheck           = "1.17.0"
@@ -69,24 +69,24 @@ val V = new {
   val zio                  = "2.0.21"
   val zioCats              = "23.0.0.8"
   val circeGeneric         = "0.14.6"
-  val akkaVersion          = "2.9.2"
-  val akkaGrpc             = "2.4.1"
-  val kafkaVersion         = "5.0.0"
+  val akkaVersion          = "2.9.3"
+  val akkaGrpc             = "2.4.3"
+  val kafkaVersion         = "6.0.0"
   val logbackVersion       = "1.4.14"
   val jacksonVersion       = "2.11.4"
-  val akkaHttpVersion      = "10.6.1"
-  val akkaManagement       = "1.5.1"
-  val cassandra            = "1.2.0"
-  val akkaPersistenceR2dbc = "1.2.3"
-  val akkaProjection       = "1.5.3"
+  val akkaHttpVersion      = "10.6.3"
+  val akkaManagement       = "1.5.2"
+  val cassandra            = "1.2.1"
+  val akkaPersistenceR2dbc = "1.2.4"
+  val akkaProjection       = "1.5.4"
   val cats                 = "2.10.0"
   val catsEffect           = "3.5.4"
   val fs2                  = "3.10.2"
   val iron                 = "2.5.0"
-  val grpc                 = "1.56.0"
+  val grpc                 = "1.64.0"
   val scalapbCommonProtos  = "2.9.6-0"
   val avroCompiler         = "1.11.3"
-  val chimney              = "0.8.5"
+  val chimney              = "1.0.0"
   val doobie               = "1.0.0-RC5"
   val skunk                = "1.1.0-M3"
   val postgress            = "42.7.3"
@@ -94,7 +94,7 @@ val V = new {
   // https://packages.confluent.io/maven/io/confluent/kafka-avro-serializer/
   val kafkaAvroSerializer  = "7.6.1"
   val smithytranslateTraitsVersion = "0.5.3"
-  val http4s                       = "0.23.26"
+  val http4s                       = "0.23.27"
   val scalapb                      = "0.11.15"
   val avroCompilerVersion          = "1.11.3"
   val fs2Kafka                     = "3.5.1"
@@ -180,6 +180,8 @@ val Deps = new {
       val avro                       = "org.apache.avro"     % "avro"                           % V.avroCompilerVersion
       
       val fs2Kafka                   = "com.github.fd4s"    %% "fs2-kafka"                      % V.fs2Kafka
+      val munit                      = "org.scalameta"      %% "munit"                          % "1.0.0" % Test
+      val catsMunit                  = "org.typelevel"      %% "munit-cats-effect"              % "2.0.0" % Test
 
 
 }
@@ -320,6 +322,10 @@ lazy val root = project
       Deps.avro,
       Deps.fs2Kafka,
       Deps.kafkaAvroSerializer,
+
+      Deps.munit,
+      Deps.catsMunit,
+      
     ),
   )
   // .aggregate(restApi)
@@ -377,6 +383,14 @@ val scenario5 = Seq(
 val scenario6 = Seq(
 )
 
+val scenario7 = Seq(
+)
+
+val scenario8 = Seq(
+  "import components.infrastructure.cluster.WalletOperations.*",
+  "init",
+)
+
 lazy val selectedScenario = sys.env.get("SCENARIO").getOrElse("scenario1")
 lazy val scenarioInititalCommands = scenarios(selectedScenario)
 
@@ -387,6 +401,8 @@ lazy val scenarios = Map(
   "scenario4" -> scenario4,
   "scenario5" -> scenario5,
   "scenario6" -> scenario6,
+  "scenario7" -> scenario7,
+  "scenario8" -> scenario8,
 )
 
 ThisBuild / watchTriggeredMessage := Watch.clearScreenOnTrigger
@@ -397,6 +413,7 @@ addCommandAlias("c", "compile")
 addCommandAlias("t", "test")
 addCommandAlias("styleCheck", "scalafmtSbtCheck; scalafmtCheckAll")
 addCommandAlias("styleFix", "scalafmtSbt; scalafmtAll; scalafix RemoveUnused; scalafix OrganizeImports")
+addCommandAlias("styleF", "scalafmtSbt; scalafmtAll")
 addCommandAlias("rl", "reload plugins; update; reload return")
 
 selectedScenario match {
@@ -416,8 +433,19 @@ selectedScenario match {
       .toTask(" components.main.run")
       .value
 
+  case "scenario7" =>
+    TaskKey[Unit]("r") := (root / Compile / runMain)
+      .toTask(" infrastructure.components.persistence.run")
+      .value
+
+  case "scenario8" =>
+    TaskKey[Unit]("r") := (root / Compile / runMain)
+      .toTask(" components.infrastructure.cluster.run")
+      .value
+
   case _ =>
     TaskKey[Unit]("r") := (root / Compile / runMain)
       .toTask(" demo.examples.run")
       .value
+
 }

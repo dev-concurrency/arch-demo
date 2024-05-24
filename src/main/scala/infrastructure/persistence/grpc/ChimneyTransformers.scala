@@ -23,10 +23,10 @@ object ChimneyTransformers:
         def transform(src: AdSetup): Dto.AdSetup =
           src
             .intoPartial[Dto.AdSetup]
-            .withCoproductInstancePartial[AdSetup.Empty.type](
+            .withEnumCaseHandledPartial[AdSetup.Empty.type](
               _ => partial.Result.fromEmpty
             )
-            .withCoproductInstance[AdSetup.NonEmpty](
+            .withEnumCaseHandled[AdSetup.NonEmpty](
               _.transformInto[Dto.AdSetup]
             )
             .transform

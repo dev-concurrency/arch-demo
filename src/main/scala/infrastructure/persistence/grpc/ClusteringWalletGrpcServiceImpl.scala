@@ -99,10 +99,9 @@ class ClusteringWalletGrpcServiceImpl[F[_], G: ExceptionGenerator]
       } yield BalanceResponse(value)
 
   def operation(request: rpcOperationRequest, ctx: Metadata): F[rpcOperationResponse] =
-    // import ChimneyTransformers.given
+      import ChimneyTransformers.given
+      println(request.in.transformInto[Dto.AdSetup])
 
-    // println(request.in.transformInto[Dto.AdSetup])
-
-    F.pure(rpcOperationResponse(333))
+      F.pure(rpcOperationResponse(333))
 
 }
