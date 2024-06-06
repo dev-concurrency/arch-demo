@@ -1,0 +1,11 @@
+meta {
+  name: Get labels
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/loki/api/v1/labels
+  body: none
+  auth: none
+}

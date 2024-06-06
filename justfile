@@ -24,9 +24,9 @@ truncate-all:
               --sql-file=support/storage/postgres/ddls/truncate-all.sql \
               --defaults-file=support/storage/postgres/liquibase.properties
 
-drop-all:
-    liquibase drop-all \
-              --defaults-file=support/storage/postgres/liquibase.properties
+# drop-all:
+#     liquibase drop-all \
+#               --defaults-file=support/storage/postgres/liquibase.properties
 
 [private]
 [macos]
@@ -90,7 +90,7 @@ docker-compose-down:
 infrastructure-down:
     just docker-compose-down
 
-[confirm]
+# [confirm]
 clean-infrastructure-data: infrastructure-down
     #!/usr/bin/env bash
 
@@ -102,6 +102,7 @@ clean-infrastructure-data: infrastructure-down
     sudo chmod -R 777 support/.data
     sudo chmod -R 777 support/observability/data/grafana
     rm -Rf logs
+    mkdir -p logs/var/vector
     echo "All infrastructure data cleaned"
 
 [confirm]
@@ -117,17 +118,17 @@ lstart:
     loki -config.file=support/observability/loki/loki-local-config.yaml &
     echo $! > .loki.pid
 
-    promtail -config.file=support/observability/loki/promtail-local-config.yaml &
-    echo $! > .promtail.pid
+    vector -c support/observability/vector/vector.toml &
+    echo $! > .vector.pid
 
 lstop:
     #!/usr/bin/env bash
     set -euxo pipefail
 
     kill -9 $(cat .loki.pid)
-    kill -9 $(cat .promtail.pid)
+    kill -9 $(cat .vector.pid)
     rm .loki.pid
-    rm .promtail.pid
+    rm .vector.pid
 
 gen-grpc-web-stubs_1:
     #!/usr/bin/env bash

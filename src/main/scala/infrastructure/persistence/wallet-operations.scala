@@ -19,6 +19,7 @@ object WalletEventSourcing:
     import akka.cluster.sharding.typed.scaladsl.Entity
 
     import infrastructure.persistence.WalletEntity
+    import infrastructure.persistence.WalletEntity2
 
     import infrastructure.util.*
     // import infrastructure.util.EitherT_TypesConversion.*
@@ -43,7 +44,7 @@ object WalletEventSourcing:
     import doobie.hikari.HikariTransactor
 
     object Root:
-        trait Command
+        trait Command extends infrastructure.CborSerializable
         object Start           extends Command
         // object StartProjections extends Command
         object StartGrpcServer extends Command
@@ -58,7 +59,7 @@ object WalletEventSourcing:
             config: Config,
             grpcApi: GrpcServerResource,
             // , grpcApi: ServerModule.gRPCApi
-            ws: WalletEventSourcing.WalletService)
+            ws: WalletEventSourcing.WalletService | WalletEventSourcing.WalletService2)
           : Behavior[Command] = Behaviors.setup[
           Command
         ]:
@@ -122,12 +123,18 @@ object WalletEventSourcing:
                               ioQueue = new WalletQueueIOImpl(queue)
                               resultQueue = new WalletQueueImpl[GrpcServiceException](ioQueue, MyTransformers[GrpcServiceException])
 
-                              wServiceIO = WalletEventSourcing.WalletServiceIOImpl[Result](ws, resultQueue)
+                              wServiceIO = ws match{
+                                case ws: WalletEventSourcing.WalletService => WalletEventSourcing.WalletServiceIOImpl[Result](ws, resultQueue)
+                                case ws: WalletEventSourcing.WalletService2 => WalletEventSourcing.WalletServiceIOImpl2[Result](ws, resultQueue)
+                              }                                
+                              
                               producer = ProducerImpl(queue, cSer.serializer)
 
                               repo = WalletRepositoryIOImpl(tx)
                               wRepo = WalletRepositoryImpl[GrpcServiceException](repo, MyTransformers[GrpcServiceException])
+
                               serverDefinition <- grpcApi.helloService[GrpcServiceException](wServiceIO, wRepo)
+
                               server <- grpcApi.run[IO](serverDefinition)
 
                             } yield (server, producer)
@@ -270,9 +277,9 @@ object WalletEventSourcing:
                 val adapter = new infrastructure.persistence.AccountDetachedModelsAdapter()
 
                 walletSharding.init(
-                  Entity(WalletEntity.typeKey)(createBehavior =
+                  Entity(WalletEntity2.typeKey)(createBehavior =
                     entityContext =>
-                      WalletEntity(
+                      WalletEntity2(
                         PersistenceId(
                           WalletEntity.typeKey.name,
                           entityContext.entityId,
@@ -287,7 +294,8 @@ object WalletEventSourcing:
 
                 // val grpcApi: ServerModule.gRPCApi = ServerModule.gRPCApi()
                 val grpcApi: GrpcServerResource = GrpcServerResource()
-                val w: WalletEventSourcing.WalletService = new WalletServiceImpl(walletSharding)
+                // val w: WalletEventSourcing.WalletService = new WalletServiceImpl2(walletSharding)
+                val w: WalletEventSourcing.WalletService2 = new WalletServiceImpl2(walletSharding)
                 ctx.delegate(interactive(config, grpcApi, w), Root.Start)
 
 object WalletOperations:

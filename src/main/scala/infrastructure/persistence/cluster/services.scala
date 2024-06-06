@@ -1,9 +1,12 @@
 package event_sourcing
 package examples
 
+import infrastructure.persistence.*
+
 import akka.Done
 import fs2.concurrent.Channel
 import infrastructure.persistence.WalletDataModel.*
+import infrastructure.persistence.WalletDataModel2
 import infrastructure.util.*
 
 object WalletServices:
@@ -16,6 +19,13 @@ object WalletServices:
         def getBalance(id: String): F[Balance]
 
     trait WalletServiceIO2[F[_]]:
+        def createWallet(id: String): F[OkResponse]
+        def deleteWallet(id: String): F[OkResponse]
+        def addCredit(id: String, value: WalletDataModel2.Credit): F[OkResponse]
+        def addDebit(id: String, value: WalletDataModel2.Debit): F[OkResponse]
+        def getBalance(id: String): F[WalletDataModel2.Balance]
+
+    trait WalletServiceIO_2[F[_]]:
         def createWallet(id: String): F[Done]
         def deleteWallet(id: String): F[Done]
 
@@ -37,3 +47,10 @@ object WalletServices:
         def addCredit(id: String, value: Credit): Future[Done | ResultError]
         def addDebit(id: String, value: Debit): Future[Done | ResultError]
         def getBalance(id: String): Future[Balance | ResultError]
+
+    trait WalletService2:
+        def createWallet(id: String): Future[OkResponse | ResultError]
+        def deleteWallet(id: String): Future[OkResponse | ResultError]
+        def addCredit(id: String, value: WalletDataModel2.Credit): Future[OkResponse | ResultError]
+        def addDebit(id: String, value: WalletDataModel2.Debit): Future[OkResponse | ResultError]
+        def getBalance(id: String): Future[WalletDataModel2.Balance | ResultError]

@@ -1,0 +1,99 @@
+/// This file has messages for describing a customer.
+syntax = "proto3";
+
+package com.wallet.proto.messages.commands;
+
+import "google/protobuf/wrappers.proto";
+import "scalapb/scalapb.proto";
+import "google/protobuf/any.proto";
+
+option (scalapb.options) = {
+  scope: FILE
+  package_name: "com.wallet.proto.messages.commands"
+  flat_package: true
+  single_file: true
+  java_conversions: false
+  lenses: true
+  getters: true
+  retain_source_code_info: false
+  no_default_values_in_constructor: false
+  preserve_unknown_fields: false
+  enum_value_naming: CAMEL_CASE
+  enum_strip_prefix: false
+  scala3_sources: true
+};
+
+message CreateWalletCmd{}
+message CreditCmd{
+  Credit value = 1 [
+    (scalapb.field).no_box = true,
+    (scalapb.field).required = true
+  ];
+}
+message DebitCmd{
+  Debit value = 1 [
+    (scalapb.field).no_box = true,
+    (scalapb.field).required = true
+  ];
+}
+message GetBalanceCmd {}
+message StopCmd{}
+
+message CommandsADT {
+  oneof sealed_value {
+   CreateWalletCmd createWalletCmd = 1;
+   CreditCmd creditCmd = 2;
+   DebitCmd debitCmd = 3;
+   GetBalanceCmd getBalanceCmd = 4;
+   StopCmd stopCmd = 5;
+  }
+}
+
+message CommandsADTOptional {
+  CommandsADT value = 1;
+}
+
+message ResultError{
+TransportError code = 1;
+string message = 2;
+}
+
+enum TransportError{
+  NOT_FOUND = 0;
+  BAD_REQUEST = 1;
+  INTERNAL_SERVER_ERROR = 2;
+  UNAUTHORIZED = 3;
+  FORBIDDEN = 4;
+  UNKNOWN = 5;
+  MAINTENANCE = 6;
+}
+
+// message StringList {
+//   repeated string value = 1;
+// }
+
+message CmdInst{
+  bytes payload = 1;
+  repeated string params = 2;
+  string replyTo = 3;
+  string type_url = 4;
+}
+
+message Done{}
+
+message Balance{
+  int64 value = 1;
+}
+
+message Debit{
+  int32 amount = 1;
+}
+
+message Credit{
+  int32 amount = 1;
+}
+
+// message Payload{
+//   google.protobuf.Any value = 1;
+//   string tag = 2;
+// }

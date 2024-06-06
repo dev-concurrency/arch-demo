@@ -16,7 +16,7 @@ class GrpcServerResource:
 
     def helloService[G: ExceptionGenerator]
       (
-        wService: WalletEventSourcing.WalletServiceIO[Result],
+        wService: WalletEventSourcing.WalletServiceIO[Result] | WalletEventSourcing.WalletServiceIO2[Result],
         repo: WalletEventSourcing.WalletRepository[Result])
       : Resource[IO, ServerServiceDefinition] = {
 

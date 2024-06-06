@@ -16,10 +16,14 @@ import doobie.hikari.HikariTransactor
 import doobie.implicits.*
 import fs2.concurrent.Channel
 import infrastructure.persistence.WalletDataModel.*
+import infrastructure.persistence.WalletDataModel2
 import infrastructure.persistence.WalletEntity
 import infrastructure.util.*
 import io.scalaland.chimney.*
 import io.scalaland.chimney.dsl.*
+
+import infrastructure.persistence.*
+import infrastructure.persistence.OkResponse
 
 object WalletServicesImpl:
     import WalletServices.*
@@ -54,8 +58,8 @@ object WalletServicesImpl:
         case _                       => FR.raise(ErrorsBuilder.internalServerError(message))
       }
 
-    class WalletServiceIO2Impl[F[_]](entitySharding: WalletSharding)
-        (using sys: ActorSystem[Nothing], F: Async[F], FR: Raise[F, ServiceError], M: Monad[F], MT: MonadThrow[F]) extends WalletServiceIO2[F]:
+    class WalletServiceIO_2Impl[F[_]](entitySharding: WalletSharding)
+        (using sys: ActorSystem[Nothing], F: Async[F], FR: Raise[F, ServiceError], M: Monad[F], MT: MonadThrow[F]) extends WalletServiceIO_2[F]:
 
         given ec: ExecutionContextExecutor = sys.executionContext
         given timeout: Timeout = demo.timeout
@@ -171,6 +175,67 @@ object WalletServicesImpl:
               }
           } yield balance
 
+    class WalletServiceIOImpl2[F[_]]
+        (
+          wService: WalletService2,
+          queue: WalletQueue[F])(using ec: ExecutionContextExecutor, F: Async[F], FR: Raise[F, ServiceError], M: Monad[F], MT: MonadThrow[F])
+        extends WalletServiceIO2[F]:
+
+        def deleteWallet(id: String): F[OkResponse] =
+          for {
+            res <- F.fromFuture(wService.deleteWallet(id).pure[F])
+            done <-
+              res match {
+                case OkResponse()                   => F.pure(OkResponse())
+                case ResultError(code, message) => reportError(code, message)
+              }
+          } yield done
+
+        def createWallet(id: String): F[OkResponse] =
+          for {
+            res <- F.fromFuture(wService.createWallet(id).pure[F])
+            done <-
+              res match {
+                case OkResponse()                   => F.pure(OkResponse())
+                case ResultError(code, message) => reportError(code, message)
+              }
+          } yield done
+
+        def addCredit(id: String, value: WalletDataModel2.Credit): F[OkResponse] =
+            val record = org.integration.avro.transactions.CreditRequest.newBuilder()
+              .setId(id)
+              .setAmount(value.amount)
+              .build()
+            for {
+              res <- F.fromFuture(wService.addCredit(id, value).pure[F])
+              _ <- queue.trySend(ProducerParams("topic", id, record, Map()))
+              done <-
+                res match {
+                  case OkResponse()                   => F.pure(OkResponse())
+                  case ResultError(code, message) => reportError(code, message)
+                }
+            } yield done
+
+        def addDebit(id: String, value: WalletDataModel2.Debit): F[OkResponse] =
+          for {
+            res <- F.fromFuture(wService.addDebit(id, value).pure[F])
+            done <-
+              res match {
+                case OkResponse()                   => F.pure(OkResponse())
+                case ResultError(code, message) => reportError(code, message)
+              }
+          } yield done
+
+        def getBalance(id: String): F[WalletDataModel2.Balance] =
+          for {
+            res <- F.fromFuture(wService.getBalance(id).pure[F])
+            balance <-
+              res match {
+                case b: WalletDataModel2.Balance                 => F.pure(b)
+                case ResultError(code, message) => reportError(code, message)
+              }
+          } yield balance
+
     class WalletServiceImpl
         (
           entitySharding: WalletSharding)(using sys: ActorSystem[Nothing]) extends WalletService:
@@ -226,3 +291,52 @@ object WalletServicesImpl:
           .entityRefFor(WalletEntity.typeKey, id)
           .ask(WalletEntity.GetBalanceCmd(_))
           .mapTo[Balance | ResultError]
+
+
+    class WalletServiceImpl2(
+          entitySharding: WalletSharding)(using sys: ActorSystem[Nothing]) extends WalletService2:
+
+        // import infrastructure.persistence.WalletCommands.*
+        import infrastructure.persistence.WalletCommands2.CommandsADT
+        import infrastructure.persistence.WalletCommands2
+        import infrastructure.persistence.WalletEntity2
+
+        given ec: ExecutionContextExecutor = sys.executionContext
+        given timeout: Timeout = demo.timeout
+
+        def deleteWallet(id: String): Future[OkResponse | ResultError] = ???
+        def createWallet(id: String): Future[OkResponse | ResultError] = 
+          entitySharding
+          .entityRefFor(WalletEntity2.typeKey, id)
+          .ask(
+            // WalletCommands2.CmdInst[CommandsADT, Done](CommandsADT.CreateWalletCmd, List(id), _)
+            FrameWorkCommands.CmdInst(CommandsADT.CreateWalletCmd, List(id), _)
+            )
+          .mapTo[OkResponse | ResultError]
+
+        def addCredit(id: String, value: WalletDataModel2.Credit): Future[OkResponse | ResultError] =
+          entitySharding
+          .entityRefFor(WalletEntity2.typeKey, id)
+          .ask(
+            // WalletCommands2.CmdInst[CommandsADT, Done](CommandsADT.CreditCmd(value), List(id), _)
+            FrameWorkCommands.CmdInst(CommandsADT.CreditCmd(value), List(id), _)
+            )
+          .mapTo[OkResponse | ResultError]
+
+        def addDebit(id: String, value: WalletDataModel2.Debit): Future[OkResponse | ResultError] = ???
+          // entitySharding
+          // .entityRefFor(WalletEntity2.typeKey, id)
+          // .ask(
+          //   WalletCommands2.CmdInst[CommandsADT, Done](CommandsADT.DebitCmd(value.amount), List("id" -> id), _)
+          //   )
+          // .mapTo[Done | ResultError]
+
+        def getBalance(id: String): Future[WalletDataModel2.Balance | ResultError] = 
+          entitySharding
+          .entityRefFor(WalletEntity2.typeKey, id)
+          .ask(
+            // WalletCommands2.CmdInst[CommandsADT, WalletDataModel2.Balance](CommandsADT.GetBalanceCmd, List(id), _)
+            FrameWorkCommands.CmdInst(CommandsADT.GetBalanceCmd, List(id), _)
+            // WalletCommands2.CmdInst(WalletCommands2.Payload(WalletCommands2.GetBalanceCmd()), List("id" -> id), _)
+            )
+          .mapTo[WalletDataModel2.Balance | ResultError]

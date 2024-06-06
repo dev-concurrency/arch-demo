@@ -150,8 +150,12 @@ trait Container[C >: FC <: { def replyTo: ActorRef[ResultError] }, FC <: { def r
             None,
             (state: Option[S], cmd: C) =>
               state match {
-                case None              => onFirstCommand(cmd.asInstanceOf[FC])
-                case Some[S](state: S) => cApp.applyCommand(state, cmd)
+                case None              => 
+                  // TODO: traceId set point
+                  onFirstCommand(cmd.asInstanceOf[FC])
+                case Some[S](state: S) => 
+                  // TODO: traceId set point
+                  cApp.applyCommand(state, cmd)
               },
             (state: Option[S], event: E) =>
               state match {

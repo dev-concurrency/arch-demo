@@ -10,15 +10,23 @@ import akka.persistence.typed.scaladsl.Effect
 import akka.persistence.typed.scaladsl.EventSourcedBehavior
 import infrastructure.util.*
 
+import scala.reflect.Selectable.reflectiveSelectable
+
 object WalletDataModel:
     sealed trait Model                    extends CborSerializable
     final case class Balance(value: Long) extends Model
     final case class Credit(amount: Int)  extends Model
     final case class Debit(amount: Int)   extends Model
 
+object WalletState:
+  case class State(balance: Long = 0) extends CborSerializable
+    
 object WalletCommands:
 
     import WalletDataModel.*
+
+    trait ReplyAble:
+        def replyTo: ActorRef[ResultError]
 
     sealed trait Command extends CborSerializable:
         def replyTo: ActorRef[ResultError]
@@ -28,6 +36,7 @@ object WalletCommands:
     final case class DebitCmd(amount: Int, replyTo: ActorRef[Done | ResultError])  extends Command
     final case class GetBalanceCmd(replyTo: ActorRef[Balance | ResultError])       extends Command
     final case class StopCmd(replyTo: ActorRef[Done | ResultError])                extends Command
+
 
 object WalletEvents:
     sealed trait Event                       extends CborSerializable

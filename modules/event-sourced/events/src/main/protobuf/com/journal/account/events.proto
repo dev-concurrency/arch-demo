@@ -48,7 +48,8 @@ message CreditAdded {
 message DebitAdded {
   option (scalapb.message).extends = "Event";
 
-  google.protobuf.Int32Value amount = 1 [
+  google.protobuf.Int32Value amount = 1
+   [
     (scalapb.field).no_box = true,
     (scalapb.field).required = true
   ];
@@ -60,7 +61,8 @@ message NewAmount {
     (scalapb.field).required = true
   ];
 
-  google.protobuf.StringValue id = 2 [
+  google.protobuf.StringValue id = 2
+   [
     (scalapb.field).no_box = true,
     (scalapb.field).required = true
   ];

@@ -1,0 +1,81 @@
+
+[api]
+enabled = true
+
+[sources.my_source_id]
+type = "file"
+data_dir = "logs/var/vector/"
+file_key = "file"
+glob_minimum_cooldown_ms = 1_000
+ignore_older_secs = 600
+include = [ "logs/**/*.log" ]
+max_line_bytes = 102_400
+max_read_bytes = 2_048
+offset_key = "offset"
+read_from = "beginning"
+rotate_wait_secs = 9_223
+
+[transforms.my_transform_id]
+type = "remap"
+inputs = [ "my_source_id" ]
+drop_on_abort = true
+metric_tag_values = "single"
+source = """
+. = parse_json!(string!(.message))
+"""
+timezone = "local"
+# .level = get!(., ["level"])
+
+[transforms.my_transform_id2]
+type = "filter"
+inputs = [ "my_transform_id" ]
+condition = { type = "vrl", source = """.level == "ERROR" && contains( string!(.mdc.akkaAddress), "2551", case_sensitive: false) """ }
+
+[transforms.my_transform_id3]
+type = "filter"
+inputs = [ "my_transform_id" ]
+condition = { type = "vrl", source = """.level == "ERROR" && contains( string!(.mdc.akkaAddress), "2552", case_sensitive: false) """ }
+
+[transforms.my_transform_id4]
+type = "filter"
+inputs = [ "my_transform_id" ]
+condition = { type = "vrl", source = """.level == "ERROR" && contains( string!(.mdc.akkaAddress), "2553", case_sensitive: false) """ }
+
+# [sinks.my_sink_id]
+# type = "console"
+# inputs = [ "my_transform_id2" ]
+# target = "stdout"
+# encoding.only_fields = ["mdc", "message"]
+# encoding.codec = "json"
+
+[sinks.loki_sink_id_1]
+type = "loki"
+inputs = [ "my_transform_id2" ]
+encoding.only_fields = ["mdc", "message"]
+encoding.codec = "json"
+endpoint = "http://0.0.0.0:3100"
+# healthcheck = false
+# proxy.http="http://0.0.0.0:8501"
+[sinks.loki_sink_id_1.labels]
+"level" = "error"
+"service_name" = "1"
+
+[sinks.loki_sink_id_2]
+type = "loki"
+inputs = [ "my_transform_id3" ]
+encoding.only_fields = ["mdc", "message"]
+encoding.codec = "json"
+endpoint = "http://0.0.0.0:3100"
+[sinks.loki_sink_id_2.labels]
+"level" = "error"
+"service_name" = "2"
+
+[sinks.loki_sink_id_3]
+type = "loki"
+inputs = [ "my_transform_id4" ]
+encoding.only_fields = ["mdc", "message"]
+encoding.codec = "json"
+endpoint = "http://0.0.0.0:3100"
+[sinks.loki_sink_id_3.labels]
+"level" = "error"
+"service_name" = "3"

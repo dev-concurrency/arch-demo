@@ -14,7 +14,6 @@ import akka.cluster.sharding.typed.scaladsl.Entity
 import akka.persistence.typed.PersistenceId
 
 import org.slf4j.{ Logger, LoggerFactory }
-import akka.cluster.pubsub.protobuf.msg.DistributedPubSubMessages.Send
 
 import com.typesafe.config.ConfigFactory
 import distage.ModuleDef
@@ -23,6 +22,9 @@ import distage.Roots
 import distage.DIKey
 import distage.plugins.PluginConfig
 import distage.plugins.PluginLoader
+
+import _root_.infrastructure.persistence.OkResponse
+import akka.serialization.jackson.CborSerializable
 
 trait Registration:
     def register(ctx: ActorContext[Root.Command]): Unit
@@ -72,10 +74,11 @@ object ClusterStateChanges:
                   )
                   Behaviors.same
 
-import infrastructure.wallet.WalletContainer as obj
+// import infrastructure.wallet.WalletContainer as obj
+import components.infrastructure.wallet2.WalletContainer2 as obj
 
 object Root:
-    trait Command
+    trait Command extends CborSerializable
     object Start           extends Command
     // object StartProjections extends Command
     object StartGrpcServer extends Command
@@ -99,13 +102,33 @@ object Root:
 
             import components.infrastructure.wallet.Commands
             import components.infrastructure.wallet.DataModel
+            
             import _root_.infrastructure.util.*
             import akka.Done
+            
+            import _root_.infrastructure.persistence.WalletDataModel2 as dm2
+            import _root_.infrastructure.persistence.FrameWorkCommands.*
+            import _root_.infrastructure.persistence.WalletCommands2.*
             
             Behaviors.receiveMessage[Command] {
               case Start   =>
                 // println("Handler started")
                 Behaviors.same
+
+              // case CreateMsg =>
+              //   println("Sending CreateMsg")
+                
+              //   given timeout: Timeout = demo.timeout
+                
+              //   val res = ws
+              //   .entityRefFor(WEntity.typeKey, "a")
+              //   .ask(Commands.CreateWalletCmd(_))
+              //   .mapTo[Done | ResultError]
+              //   res.onComplete {
+              //     case Success(value)     => println(s"Got the callback, value = $value")
+              //     case Failure(exception) => println(s"Got the callback, exception = $exception")
+              //   }
+              //   Behaviors.same
 
               case CreateMsg =>
                 println("Sending CreateMsg")
@@ -114,13 +137,28 @@ object Root:
                 
                 val res = ws
                 .entityRefFor(WEntity.typeKey, "a")
-                .ask(Commands.CreateWalletCmd(_))
-                .mapTo[Done | ResultError]
+                .ask(CmdInst(CommandsADT.CreateWalletCmd, List("id"), _))
+                .mapTo[OkResponse | ResultError]
                 res.onComplete {
                   case Success(value)     => println(s"Got the callback, value = $value")
                   case Failure(exception) => println(s"Got the callback, exception = $exception")
                 }
                 Behaviors.same
+
+              // case SendMsg =>
+              //   println("Sending msg")
+                
+              //   given timeout: Timeout = demo.timeout
+                
+              //   val res = ws
+              //   .entityRefFor(WEntity.typeKey, "a")
+              //   .ask(Commands.CreditCmd(20, _))
+              //   .mapTo[Done | ResultError]
+              //   res.onComplete {
+              //     case Success(value)     => println(s"Got the callback, value = $value")
+              //     case Failure(exception) => println(s"Got the callback, exception = $exception")
+              //   }
+              //   Behaviors.same
 
               case SendMsg =>
                 println("Sending msg")
@@ -129,13 +167,28 @@ object Root:
                 
                 val res = ws
                 .entityRefFor(WEntity.typeKey, "a")
-                .ask(Commands.CreditCmd(20, _))
-                .mapTo[Done | ResultError]
+                .ask(CmdInst(CommandsADT.CreditCmd(dm2.Credit(20)), List("id"), _))
+                .mapTo[OkResponse | ResultError]
                 res.onComplete {
                   case Success(value)     => println(s"Got the callback, value = $value")
                   case Failure(exception) => println(s"Got the callback, exception = $exception")
                 }
                 Behaviors.same
+
+              // case GetMsg =>
+              //   println("Sending GetMsg")
+                
+              //   given timeout: Timeout = demo.timeout
+                
+              //   val res = ws
+              //   .entityRefFor(WEntity.typeKey, "a")
+              //   .ask(Commands.GetBalanceCmd(_))
+              //   .mapTo[DataModel.Balance | ResultError]
+              //   res.onComplete {
+              //     case Success(value)     => println(s"Got the callback, value = $value")
+              //     case Failure(exception) => println(s"Got the callback, exception = $exception")
+              //   }
+              //   Behaviors.same
 
               case GetMsg =>
                 println("Sending GetMsg")
@@ -144,26 +197,16 @@ object Root:
                 
                 val res = ws
                 .entityRefFor(WEntity.typeKey, "a")
-                .ask(Commands.GetBalanceCmd(_))
-                .mapTo[DataModel.Balance | ResultError]
+                .ask(CmdInst(CommandsADT.GetBalanceCmd, List("id"), _))
+                .mapTo[dm2.Balance | ResultError]
                 res.onComplete {
                   case Success(value)     => println(s"Got the callback, value = $value")
                   case Failure(exception) => println(s"Got the callback, exception = $exception")
                 }
                 Behaviors.same
+                
+                
             }
-
-    // def apply
-    //   (
-    //     registriation: Registration,
-    //     we: WalletEntitySetup,
-    //     WEntity: obj.EntityConfig)
-    //   : Behavior[Command] = Behaviors.setup[Command]:
-    //     (ctx: ActorContext[Command]) =>
-    //         ctx.log.info("Starting Wallet Operations")
-    //         registriation.register(ctx)
-    //         val ws = we.setup()
-    //         ctx.delegate(interactive(ws, WEntity), Root.Start)
 
     def apply(conf: Config) : Behavior[Command] = Behaviors.setup[Command]:
         (ctx: ActorContext[Command]) =>
@@ -177,11 +220,15 @@ object Root:
               make[Registration].fromTrait[RegistrationImpl]
               make[obj.EntityConfig].from{
                 // println("Creating EntityConfig ==================================")
-                val pluginConfig = PluginConfig.cached(packagesEnabled = Seq("components.entities"))
+                
+                // val pluginConfig = PluginConfig.cached(packagesEnabled = Seq("components.entities"))
+                val pluginConfig = PluginConfig.cached(packagesEnabled = Seq("components.entities2"))
+
                 val appModules = PluginLoader().load(pluginConfig)
                 val module = appModules.result.merge
 
                 val entity = Injector().produceGet[obj.EntityConfig](module).unsafeGet()
+                // println(entity.echo)
                 entity
               }
               
@@ -289,9 +336,9 @@ object WalletOperations:
     var sys2: Option[ActorSystem[Root.Command]] = None
     var sys3: Option[ActorSystem[Root.Command]] = None
 
-    def module =
-      new ModuleDef {
-      }
+    // def module =
+    //   new ModuleDef {
+    //   }
         
     def start1 =
         // akka.loglevel = "DEBUG"
@@ -341,9 +388,9 @@ object WalletOperations:
         start2
         start3
         // Thread.sleep(3000)
+        // create
         // send
-        Thread.sleep(3000)
-        get
+        // get
 
     def create =
         sys1.foreach(
