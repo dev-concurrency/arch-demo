@@ -23,8 +23,7 @@ object WalletContainer extends _root_.infrastructure.components.persistence.Cont
     }
 
     val firstEventHandler: Event => Option[State] = {
-      case WalletCreated() => 
-        Some(State())
+      case WalletCreated() => Some(State())
       case _               => None
     }
 

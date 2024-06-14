@@ -66,11 +66,10 @@ trait Container[C >: FC <: { def replyTo: ActorRef[ResultError] }, FC <: { def r
       override def interpret(cmd: (S, E)): S = {
         val res = handlers.map(_.handle).reduce(_ orElse _)
         if res.isDefinedAt(cmd) then {
-          res(cmd) 
-        }       
-          else {
-            cmd._1
-          }
+          res(cmd)
+        } else {
+          cmd._1
+        }
       }
 
     }
@@ -86,8 +85,7 @@ trait Container[C >: FC <: { def replyTo: ActorRef[ResultError] }, FC <: { def r
   trait Handler
       (
         appE: AppEvents,
-        appC: AppCommands,
-        ):
+        appC: AppCommands):
 
       val cApp =
         new CommandApplier:
@@ -150,10 +148,10 @@ trait Container[C >: FC <: { def replyTo: ActorRef[ResultError] }, FC <: { def r
             None,
             (state: Option[S], cmd: C) =>
               state match {
-                case None              => 
+                case None              =>
                   // TODO: traceId set point
                   onFirstCommand(cmd.asInstanceOf[FC])
-                case Some[S](state: S) => 
+                case Some[S](state: S) =>
                   // TODO: traceId set point
                   cApp.applyCommand(state, cmd)
               },

@@ -3,7 +3,6 @@ package components
 package persistence
 
 import scala.reflect.ClassTag
-import scala.reflect.Selectable.reflectiveSelectable
 
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
@@ -12,10 +11,9 @@ import akka.persistence.typed.PersistenceId
 import akka.persistence.typed.scaladsl as dsl
 import akka.persistence.typed.scaladsl.Effect
 import akka.persistence.typed.scaladsl.EventSourcedBehavior
-import org.slf4j.Logger
-
-import infrastructure.util.*
 import infrastructure.persistence.FrameWorkCommands.*
+import infrastructure.util.*
+import org.slf4j.Logger
 
 trait Container2[C >: FC <: ProtoSerializable, FC <: ProtoSerializable, E, S, FCR <: ProtoSerializable] {
 
@@ -23,7 +21,7 @@ trait Container2[C >: FC <: ProtoSerializable, FC <: ProtoSerializable, E, S, FC
   type CommandsHandlerResponse = (E | EffectType, ProtoSerializable | ResultError)
 
   trait AppCommands:
-      def interpret(input: (S, C)): CommandsHandlerResponse 
+      def interpret(input: (S, C)): CommandsHandlerResponse
 
   trait AppEvents:
       def interpret(input: (S, E)): S
@@ -31,9 +29,8 @@ trait Container2[C >: FC <: ProtoSerializable, FC <: ProtoSerializable, E, S, FC
   final case class CommandHandler(handle: PartialFunction[(S, C), CommandsHandlerResponse])
   final case class EventHandler(handle: PartialFunction[(S, E), S])
 
-
   object AppCommands {
- 
+
     final class Impl
       (
         handlers: Set[CommandHandler])(using entityNoun: String) extends AppCommands {
@@ -42,11 +39,13 @@ trait Container2[C >: FC <: ProtoSerializable, FC <: ProtoSerializable, E, S, FC
         handlers.map(_.handle)
           .reduce(_ orElse _).lift(cmd) match {
             case Some(answer: CommandsHandlerResponse) => answer
-            case None                      =>
-                                            (EffectType.None,  ResultError(
-                                                TransportError.NotFound,
-                                                s"$entityNoun does not exists"
-                                              ))
+            case None                                  =>
+              (EffectType.None,
+               ResultError(
+                 TransportError.NotFound,
+                 s"$entityNoun does not exists"
+               )
+              )
 
           }
       }
@@ -64,11 +63,10 @@ trait Container2[C >: FC <: ProtoSerializable, FC <: ProtoSerializable, E, S, FC
       override def interpret(cmd: (S, E)): S = {
         val res = handlers.map(_.handle).reduce(_ orElse _)
         if res.isDefinedAt(cmd) then {
-          res(cmd) 
-        }       
-          else {
-            cmd._1
-          }
+          res(cmd)
+        } else {
+          cmd._1
+        }
       }
 
     }
@@ -84,19 +82,22 @@ trait Container2[C >: FC <: ProtoSerializable, FC <: ProtoSerializable, E, S, FC
   trait Handler
       (
         appE: AppEvents,
-        appC: AppCommands,
-        ):
+        appC: AppCommands):
 
       val cApp =
         new CommandApplier:
-            def applyCommand(state: S, cmd: CmdInst)(using classTagE: ClassTag[E], logger: Logger): ReplyEffect = 
+            def applyCommand(state: S, cmd: CmdInst)(using classTagE: ClassTag[E], logger: Logger): ReplyEffect =
               appC.interpret((state, cmd.payload.asInstanceOf[C])) match {
-                  case (event: E, response: (ProtoSerializable | ResultError)) =>
-                    Effect.persist[E, S](event).thenReply(cmd.replyTo)( _ => response).asInstanceOf[ReplyEffect]
-                  case (EffectType.None, response) =>
-                    Effect.reply[ProtoSerializable | ResultError, E, S](cmd.replyTo)(response).asInstanceOf[ReplyEffect]
-                  case (EffectType.Stop, response) =>
-                    Effect.stop[E, S]().thenReply(cmd.replyTo)( _ => response).asInstanceOf[ReplyEffect]
+                case (event: E, response: (ProtoSerializable | ResultError)) =>
+                  Effect.persist[E, S](event).thenReply(cmd.replyTo)(
+                    _ => response
+                  ).asInstanceOf[ReplyEffect]
+                case (EffectType.None, response)                             =>
+                  Effect.reply[ProtoSerializable | ResultError, E, S](cmd.replyTo)(response).asInstanceOf[ReplyEffect]
+                case (EffectType.Stop, response)                             =>
+                  Effect.stop[E, S]().thenReply(cmd.replyTo)(
+                    _ => response
+                  ).asInstanceOf[ReplyEffect]
               }
 
       val eApp =
@@ -124,7 +125,7 @@ trait Container2[C >: FC <: ProtoSerializable, FC <: ProtoSerializable, E, S, FC
                 .thenReply(cmd.replyTo)(
                   _ => res
                 )
-            case Left(value)         =>
+            case Left(value)              =>
               Effect
                 .none
                 .thenReply(cmd.replyTo)(
@@ -144,10 +145,10 @@ trait Container2[C >: FC <: ProtoSerializable, FC <: ProtoSerializable, E, S, FC
     }
 
     def onFirstEvent(event: E): S =
-      println(s"onFirstEvent")
-      firstEventHandler(event) match
-        case Some(state) => state
-        case _           => throw new IllegalStateException(s"Unexpected event [$event] in empty state")
+        println(s"onFirstEvent")
+        firstEventHandler(event) match
+          case Some(state) => state
+          case _           => throw new IllegalStateException(s"Unexpected event [$event] in empty state")
 
     def apply(persistenceId: PersistenceId)(using classTagE: ClassTag[E], logger: Logger): Behavior[CmdInst] = {
       val factory: ActorContext[CmdInst] => Behavior[CmdInst] = {
@@ -157,14 +158,12 @@ trait Container2[C >: FC <: ProtoSerializable, FC <: ProtoSerializable, E, S, FC
             None,
             (state: Option[S], cmd: CmdInst) =>
               state match {
-                case None              => 
-
+                case None =>
                   println(s"onFirstCommand")
-                  
+
                   onFirstCommand(cmd)
 
-                  
-                case Some[S](state: S) => 
+                case Some[S](state: S) =>
                   println(s"state:  $state")
                   cApp.applyCommand(state, cmd)
               },

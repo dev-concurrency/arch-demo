@@ -13,8 +13,8 @@ import io.grpc.*
 import io.scalaland.chimney.dsl.*
 
 class ClusteringWalletGrpcServiceImpl[F[_], G: ExceptionGenerator]
-  (serviceP: WalletEventSourcing.WalletServiceIO[F] | WalletEventSourcing.WalletServiceIO2[F], repo: WalletEventSourcing.WalletRepository[F])(using transformers: MyTransformers[G])
-  (using F: Async[F], FR: Raise[F, ServiceError], M: Monad[F], MT: MonadThrow[F])
+  (serviceP: WalletEventSourcing.WalletServiceIO[F] | WalletEventSourcing.WalletServiceIO2[F], repo: WalletEventSourcing.WalletRepository[F])
+  (using transformers: MyTransformers[G])(using F: Async[F], FR: Raise[F, ServiceError], M: Monad[F], MT: MonadThrow[F])
     extends ClusteringWalletGrpcService[F] {
 
   def cha(id3: RequestId3): F[Unit] =
@@ -57,13 +57,13 @@ class ClusteringWalletGrpcServiceImpl[F[_], G: ExceptionGenerator]
         case Left(e)  => FR.raise(ErrorsBuilder.badRequestError(e.getMessage))
 
   def createWallet(request: RequestId, ctx: Metadata): F[Response] =
-    serviceP match{
-      case service: WalletEventSourcing.WalletServiceIO[F] => 
+    serviceP match {
+      case service: WalletEventSourcing.WalletServiceIO[F]  =>
         for {
           r <- validateNonNullId(request)
           res <- service.createWallet(r.id)
         } yield Response(r.id)
-      case service: WalletEventSourcing.WalletServiceIO2[F] => 
+      case service: WalletEventSourcing.WalletServiceIO2[F] =>
         for {
           r <- validateNonNullId(request)
           res <- service.createWallet(r.id)
@@ -71,14 +71,14 @@ class ClusteringWalletGrpcServiceImpl[F[_], G: ExceptionGenerator]
     }
 
   def deleteWallet(request: RequestId, ctx: Metadata): F[Response] =
-    serviceP match{
-      case service: WalletEventSourcing.WalletServiceIO[F] => 
+    serviceP match {
+      case service: WalletEventSourcing.WalletServiceIO[F]  =>
         for {
           r <- validateNonNullId(request)
           _ <- service.deleteWallet(r.id)
           _ <- repo.deleteWallet(r.id)
         } yield Response(r.id)
-      case service: WalletEventSourcing.WalletServiceIO2[F] => 
+      case service: WalletEventSourcing.WalletServiceIO2[F] =>
         for {
           r <- validateNonNullId(request)
           _ <- service.deleteWallet(r.id)
@@ -88,62 +88,61 @@ class ClusteringWalletGrpcServiceImpl[F[_], G: ExceptionGenerator]
     }
 
   def addCredit(request: CreditRequest, ctx: Metadata): F[Response] =
-    serviceP match{
-      case service: WalletEventSourcing.WalletServiceIO[F] => 
-          for {
-            r <- validateCreditRequest(request)
-            res <- service.addCredit(r.id, WalletDataModel.Credit(r.amount))
-          } yield Response(r.id)
-      case service: WalletEventSourcing.WalletServiceIO2[F] => 
-          for {
-            r <- validateCreditRequest(request)
-            res <- service.addCredit(r.id, WalletDataModel2.Credit(r.amount))
-          } yield Response(r.id)
+    serviceP match {
+      case service: WalletEventSourcing.WalletServiceIO[F]  =>
+        for {
+          r <- validateCreditRequest(request)
+          res <- service.addCredit(r.id, WalletDataModel.Credit(r.amount))
+        } yield Response(r.id)
+      case service: WalletEventSourcing.WalletServiceIO2[F] =>
+        for {
+          r <- validateCreditRequest(request)
+          res <- service.addCredit(r.id, WalletDataModel2.Credit(r.amount))
+        } yield Response(r.id)
 
     }
 
   def addDebit(request: DebitRequest, ctx: Metadata): F[Response] =
-
-    serviceP match{
-      case service: WalletEventSourcing.WalletServiceIO[F] => 
-          for {
-            r <- validateDebitRequest(request)
-            res <- service.addDebit(r.id, WalletDataModel.Debit(r.amount))
-          } yield Response(r.id)
-      case service: WalletEventSourcing.WalletServiceIO2[F] => 
-          for {
-            r <- validateDebitRequest(request)
-            res <- service.addDebit(r.id, WalletDataModel2.Debit(r.amount))
-          } yield Response(r.id)
+    serviceP match {
+      case service: WalletEventSourcing.WalletServiceIO[F]  =>
+        for {
+          r <- validateDebitRequest(request)
+          res <- service.addDebit(r.id, WalletDataModel.Debit(r.amount))
+        } yield Response(r.id)
+      case service: WalletEventSourcing.WalletServiceIO2[F] =>
+        for {
+          r <- validateDebitRequest(request)
+          res <- service.addDebit(r.id, WalletDataModel2.Debit(r.amount))
+        } yield Response(r.id)
     }
 
   val hkey = Metadata.Key.of("header_key", Metadata.ASCII_STRING_MARSHALLER)
 
   def getBalance(request: RequestId, ctx: Metadata): F[BalanceResponse] =
-      // BalanceResponse(100).pure[F]
-      // MT.raiseError(ErrorsBuilder.notFoundError("Not found"))
-      // FR.raise(ErrorsBuilder.badRequestError("bad request"))
+    // BalanceResponse(100).pure[F]
+    // MT.raiseError(ErrorsBuilder.notFoundError("Not found"))
+    // FR.raise(ErrorsBuilder.badRequestError("bad request"))
 
-      serviceP match{
-        case service: WalletEventSourcing.WalletServiceIO[F] => 
-              for {
-                r <- validateNonNullId(request)
-                res <- service.getBalance(r.id)
-                  
-              } yield BalanceResponse(res.value)
-        case service: WalletEventSourcing.WalletServiceIO2[F] => 
-              for {
-                r <- validateNonNullId(request)
-                res <- service.getBalance(r.id)
-                  
-              } yield BalanceResponse(res.value)
-      }
+    serviceP match {
+      case service: WalletEventSourcing.WalletServiceIO[F]  =>
+        for {
+          r <- validateNonNullId(request)
+          res <- service.getBalance(r.id)
 
-      // println(ctx.get(hkey))
+        } yield BalanceResponse(res.value)
+      case service: WalletEventSourcing.WalletServiceIO2[F] =>
+        for {
+          r <- validateNonNullId(request)
+          res <- service.getBalance(r.id)
 
-      // for {
-      //   value <- F.pure(600)
-      // } yield BalanceResponse(value)
+        } yield BalanceResponse(res.value)
+    }
+
+    // println(ctx.get(hkey))
+
+    // for {
+    //   value <- F.pure(600)
+    // } yield BalanceResponse(value)
 
   def operation(request: rpcOperationRequest, ctx: Metadata): F[rpcOperationResponse] =
       import ChimneyTransformers.given

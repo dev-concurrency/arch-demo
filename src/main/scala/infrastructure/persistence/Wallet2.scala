@@ -1,7 +1,8 @@
 package infrastructure
 package persistence
 
-import akka.Done
+import scala.reflect.ClassTag
+
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.sharding.typed.scaladsl.EntityTypeKey
@@ -9,12 +10,8 @@ import akka.persistence.typed.PersistenceId
 import akka.persistence.typed.scaladsl.Effect
 import akka.persistence.typed.scaladsl.EventSourcedBehavior
 import infrastructure.util.*
-
-import scala.reflect.Selectable.reflectiveSelectable
-
-import org.slf4j.{ Logger, LoggerFactory }
-import scala.reflect.ClassTag
-import com.journal.account.events.Event
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 object WalletDataModel2:
     sealed trait Model                    extends ProtoSerializable
@@ -22,26 +19,26 @@ object WalletDataModel2:
     final case class Credit(amount: Int)  extends Model
     final case class Debit(amount: Int)   extends Model
 
-
 import java.io.Serializable
 case class OkResponse() extends Serializable, ProtoSerializable
 
 object FrameWorkCommands:
+
     sealed trait Cmd extends ProtoSerializable:
         def replyTo: ActorRef[ResultError]
 
     case class CmdInst(payload: ProtoSerializable, params: List[String], replyTo: ActorRef[ProtoSerializable | ResultError]) extends Cmd
-    
+
 object WalletCommands2:
 
     import WalletDataModel2.*
 
     enum CommandsADT extends ProtoSerializable:
-      case CreateWalletCmd
-      case CreditCmd(value: Credit)
-      case DebitCmd(value: Debit)
-      case GetBalanceCmd
-      case StopCmd
+        case CreateWalletCmd
+        case CreditCmd(value: Credit)
+        case DebitCmd(value: Debit)
+        case GetBalanceCmd
+        case StopCmd
 
 trait CommandsHandler2:
     this: WalletEntity2.State =>
@@ -50,36 +47,33 @@ trait CommandsHandler2:
     import WalletDataModel2.*
     import WalletEvents.*
     import FrameWorkCommands.*
-    
-    def apCmd(
-      state: WalletEntity2.State,
-      cmd: ProtoSerializable
-    ) : (WalletEvents.Event | EffectType, ProtoSerializable | ResultError) = 
-      cmd match{
-        case CommandsADT.StopCmd =>
-          (EffectType.Stop, OkResponse())
-        case CommandsADT.CreditCmd(WalletDataModel2.Credit(amount)) =>
-          (CreditAdded(amount), OkResponse())
-        case CommandsADT.DebitCmd(Debit(amount)) =>
-          (DebitAdded(amount), OkResponse())
-        case CommandsADT.GetBalanceCmd =>
-          (EffectType.None, Balance(state.balance))
-        case CommandsADT.CreateWalletCmd =>
-          (EffectType.None, ResultError(TransportError.BadRequest, "Wallet already exists"))
-      }
 
+    def apCmd
+      (
+        state: WalletEntity2.State,
+        cmd: ProtoSerializable)
+      : (WalletEvents.Event | EffectType, ProtoSerializable | ResultError) =
+      cmd match {
+        case CommandsADT.StopCmd                                    => (EffectType.Stop, OkResponse())
+        case CommandsADT.CreditCmd(WalletDataModel2.Credit(amount)) => (CreditAdded(amount), OkResponse())
+        case CommandsADT.DebitCmd(Debit(amount))                    => (DebitAdded(amount), OkResponse())
+        case CommandsADT.GetBalanceCmd                              => (EffectType.None, Balance(state.balance))
+        case CommandsADT.CreateWalletCmd                            => (EffectType.None, ResultError(TransportError.BadRequest, "Wallet already exists"))
+      }
 
     def applyCommand(cmd: Cmd)(using logger: Logger): WalletEntity2.ReplyEffect =
       cmd match
         case CmdInst(cmd, _, replyTo) =>
           apCmd(this, cmd) match
             case (event: WalletEvents.Event, response) =>
-              Effect.persist(event).thenReply(replyTo)( _ => response)
-            case (EffectType.None, response) =>
-              Effect.reply(replyTo)(response)
-            case (EffectType.Stop, response) =>
-              Effect.stop().thenReply(replyTo)( _ => response)
-
+              Effect.persist(event).thenReply(replyTo)(
+                _ => response
+              )
+            case (EffectType.None, response)           => Effect.reply(replyTo)(response)
+            case (EffectType.Stop, response)           =>
+              Effect.stop().thenReply(replyTo)(
+                _ => response
+              )
 
 trait EventsHandler2:
     this: WalletEntity2.State =>
@@ -88,11 +82,9 @@ trait EventsHandler2:
 
     def applyEvent(event: WalletEvents.Event): WalletEntity2.State =
       event match
-        case CreditAdded(amount) =>
-          copy(balance = balance + amount)
+        case CreditAdded(amount) => copy(balance = balance + amount)
         case DebitAdded(amount)  => copy(balance = balance - amount)
-        case WalletCreated()     =>
-          this
+        case WalletCreated()     => this
 
 object WalletEntity2:
 
@@ -122,7 +114,7 @@ object WalletEntity2:
             .thenReply(replyTo)(
               _ => OkResponse()
             )
-        case default                  =>
+        case default                                          =>
           Effect
             .none
             .thenReply(default.replyTo)(

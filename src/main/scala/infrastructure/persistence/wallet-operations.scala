@@ -44,7 +44,7 @@ object WalletEventSourcing:
     import doobie.hikari.HikariTransactor
 
     object Root:
-        trait Command extends infrastructure.CborSerializable
+        trait Command          extends infrastructure.CborSerializable
         object Start           extends Command
         // object StartProjections extends Command
         object StartGrpcServer extends Command
@@ -123,11 +123,12 @@ object WalletEventSourcing:
                               ioQueue = new WalletQueueIOImpl(queue)
                               resultQueue = new WalletQueueImpl[GrpcServiceException](ioQueue, MyTransformers[GrpcServiceException])
 
-                              wServiceIO = ws match{
-                                case ws: WalletEventSourcing.WalletService => WalletEventSourcing.WalletServiceIOImpl[Result](ws, resultQueue)
-                                case ws: WalletEventSourcing.WalletService2 => WalletEventSourcing.WalletServiceIOImpl2[Result](ws, resultQueue)
-                              }                                
-                              
+                              wServiceIO =
+                                ws match {
+                                  case ws: WalletEventSourcing.WalletService  => WalletEventSourcing.WalletServiceIOImpl[Result](ws, resultQueue)
+                                  case ws: WalletEventSourcing.WalletService2 => WalletEventSourcing.WalletServiceIOImpl2[Result](ws, resultQueue)
+                                }
+
                               producer = ProducerImpl(queue, cSer.serializer)
 
                               repo = WalletRepositoryIOImpl(tx)

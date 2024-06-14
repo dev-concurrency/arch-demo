@@ -3,30 +3,15 @@ package entities2
 
 import scala.reflect.ClassTag
 
-import _root_.infrastructure.util.*
-
-// import components.infrastructure.wallet.Commands.*
-import _root_.infrastructure.persistence.WalletCommands2.*
-
-// import components.infrastructure.wallet.DataModel.*
-import _root_.infrastructure.persistence.WalletDataModel2.*
-
-// import components.infrastructure.wallet.Events.*
-import _root_.infrastructure.persistence.WalletEvents.*
-
-// import components.infrastructure.wallet.command_handlers.*
-import components.infrastructure.wallet2.command_handlers.*
-
-// import components.infrastructure.wallet.event_handlers.*
-import components.infrastructure.wallet2.event_handlers.*
-
-import _root_.infrastructure.persistence.WalletState.*
-
-import distage.plugins.PluginDef
-
-// import infrastructure.wallet.WalletContainer as obj
-import components.infrastructure.wallet2.WalletContainer2 as obj
 import _root_.infrastructure.persistence.OkResponse
+import _root_.infrastructure.persistence.WalletCommands2.*
+import _root_.infrastructure.persistence.WalletEvents.*
+import _root_.infrastructure.persistence.WalletState.*
+import _root_.infrastructure.util.*
+import components.infrastructure.wallet2.WalletContainer2 as obj
+import components.infrastructure.wallet2.command_handlers.*
+import components.infrastructure.wallet2.event_handlers.*
+import distage.plugins.PluginDef
 
 object WalletModule extends PluginDef {
 

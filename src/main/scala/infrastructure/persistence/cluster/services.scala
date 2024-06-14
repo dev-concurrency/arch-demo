@@ -1,10 +1,9 @@
 package event_sourcing
 package examples
 
-import infrastructure.persistence.*
-
 import akka.Done
 import fs2.concurrent.Channel
+import infrastructure.persistence.*
 import infrastructure.persistence.WalletDataModel.*
 import infrastructure.persistence.WalletDataModel2
 import infrastructure.util.*

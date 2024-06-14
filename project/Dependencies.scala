@@ -6,8 +6,10 @@ object Dependencies {
   object V {
     val scalaLTSVersion      = "3.3.3"
     // val scalaLTSVersion      = "3.4.2"
-    val scalaLatestVersion   = "3.4.2"
     val distage              = "1.2.8"
+    //val distage              = "1.2.5"
+    //val scalaLatestVersion   = "3.3.3"
+    val scalaLatestVersion   = "3.4.2"
     val logstage             = distage
     val scalatest            = "3.2.18"
     val scalacheck           = "1.17.0"
@@ -32,7 +34,7 @@ object Dependencies {
     val grpc                 = "1.64.0"
     val scalapbCommonProtos  = "2.9.6-0"
     val avroCompiler         = "1.11.3"
-    val chimney              = "1.0.0"
+    val chimney              = "1.1.0"
     val doobie               = "1.0.0-RC5"
     val skunk                = "1.1.0-M3"
     val postgress            = "42.7.3"
@@ -136,69 +138,59 @@ object Dependencies {
 // format: on
 
   val HybridDeps = Seq(
-      Deps.commonsCompress,
-
-      Deps.postgresql,
-
-      Deps.doobiePostgresCirce,
-      Deps.doobieHikari,
-      Deps.doobiePostgres,
-      Deps.doobieCore,
-      Deps.doobieScalatest,
-      Deps.doobieMunit,
-      Deps.doobieFree,
-    
-      Deps.grpc,
-      Deps.grpcNettyShaded,
-      Deps.scalapbCommonProtos,
-
-      Deps.http4s,
-
-      Deps.chimney,
-      Deps.chimneyProtobufs,
-      Deps.chimneyJavaCollections,
-
-      Deps.akkaActorTyped,
-      Deps.akkaSlf4j,
-      Deps.akkaStream,
-      Deps.akkaStreamKafka,
-      Deps.akkaSerializationJackson,
-      Deps.akkaHttp,
-      Deps.akkaClusterTyped,
-      Deps.akkaClusterSharding,
-      Deps.akkaClusterBootstrap,
-      Deps.akkaClusterHttp,
-      Deps.akkaPersistence,
-      Deps.akkaPersistenceCassandra,
-      Deps.akkaPersistenceR2dbc,
-      Deps.akkaProjectionR2dbc,
-      Deps.akkaProjectionCore,
-      Deps.akkaProjectionEventsourced,
-      Deps.akkaGrpc,
-
-      Deps.cats,
-      Deps.catsEffect,
-      Deps.catsMtl,
-      Deps.fs2,
-      Deps.logbackClassic,
-      Deps.requests,
-      Deps.json4sNative,
-      Deps.distageCore,
-      Deps.distageConfig,
-      Deps.distagePlugins,
-      Deps.akkaKubernetes,
-      Deps.iron,
-      Deps.ironCirce,
-      Deps.ironCats,
-      Deps.ironDecline,
-      
-      Deps.avro,
-      Deps.fs2Kafka,
-      Deps.kafkaAvroSerializer,
-
-      Deps.munit,
-      Deps.catsMunit,
-
+    Deps.commonsCompress,
+    Deps.postgresql,
+    Deps.doobiePostgresCirce,
+    Deps.doobieHikari,
+    Deps.doobiePostgres,
+    Deps.doobieCore,
+    Deps.doobieScalatest,
+    Deps.doobieMunit,
+    Deps.doobieFree,
+    Deps.grpc,
+    Deps.grpcNettyShaded,
+    Deps.scalapbCommonProtos,
+    Deps.http4s,
+    Deps.chimney,
+    Deps.chimneyProtobufs,
+    Deps.chimneyJavaCollections,
+    Deps.akkaActorTyped,
+    Deps.akkaSlf4j,
+    Deps.akkaStream,
+    Deps.akkaStreamKafka,
+    Deps.akkaSerializationJackson,
+    Deps.akkaHttp,
+    Deps.akkaClusterTyped,
+    Deps.akkaClusterSharding,
+    Deps.akkaClusterBootstrap,
+    Deps.akkaClusterHttp,
+    Deps.akkaPersistence,
+    Deps.akkaPersistenceCassandra,
+    Deps.akkaPersistenceR2dbc,
+    Deps.akkaProjectionR2dbc,
+    Deps.akkaProjectionCore,
+    Deps.akkaProjectionEventsourced,
+    Deps.akkaGrpc,
+    Deps.cats,
+    Deps.catsEffect,
+    Deps.catsMtl,
+    Deps.fs2,
+    Deps.logbackClassic,
+    Deps.requests,
+    Deps.json4sNative,
+    Deps.distageCore,
+    Deps.distageConfig,
+    Deps.distagePlugins,
+    Deps.akkaKubernetes,
+    Deps.iron,
+    Deps.ironCirce,
+    Deps.ironCats,
+    Deps.ironDecline,
+    Deps.avro,
+    Deps.fs2Kafka,
+    Deps.kafkaAvroSerializer,
+    Deps.munit,
+    Deps.catsMunit,
   )
 
 }
