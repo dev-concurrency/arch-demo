@@ -3,7 +3,7 @@ package examples
 package plugins
 
 import distage.plugins.PluginConfig
-import distage.plugins.PluginDef
+import izumi.distage.plugins.PluginDef
 import distage.plugins.PluginLoader
 
 final case class CommandHandler

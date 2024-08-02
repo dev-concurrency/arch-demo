@@ -11,7 +11,7 @@ import _root_.infrastructure.util.*
 import components.infrastructure.wallet2.WalletContainer2 as obj
 import components.infrastructure.wallet2.command_handlers.*
 import components.infrastructure.wallet2.event_handlers.*
-import distage.plugins.PluginDef
+import izumi.distage.plugins.PluginDef
 
 object WalletModule extends PluginDef {
 

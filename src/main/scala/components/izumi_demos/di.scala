@@ -88,7 +88,9 @@ def runDemo1 =
     |> println
     // res30: String = "ANSWER: Please input an arithmetic expression!"
 
-import distage.plugins.{ PluginConfig, PluginDef, PluginLoader }
+import distage.plugins.PluginConfig
+import izumi.distage.plugins.PluginDef
+import distage.plugins.PluginLoader
 
 trait Service1 {
   def m1(): Unit

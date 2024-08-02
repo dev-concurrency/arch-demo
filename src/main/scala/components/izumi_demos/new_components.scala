@@ -1,7 +1,7 @@
 package components
 package examples
 
-import distage.plugins.PluginDef
+import izumi.distage.plugins.PluginDef
 
 // package new_components_2a:
 
