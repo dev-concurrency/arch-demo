@@ -6,8 +6,8 @@ object Dependencies {
   object V {
     val scalaLTSVersion      = "3.3.3"
     // val scalaLTSVersion      = "3.4.2"
-    val distage              = "1.2.8" // working
-    // val distage              = "1.2.11"
+    // val distage              = "1.2.8" // working
+    val distage              = "1.2.11"
     
     //val scalaLatestVersion   = "3.3.3"
     val scalaLatestVersion   = "3.4.2"

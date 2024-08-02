@@ -9,7 +9,8 @@ import components.infrastructure.wallet.DataModel.*
 import components.infrastructure.wallet.Events.*
 import components.infrastructure.wallet.command_handlers.*
 import components.infrastructure.wallet.event_handlers.*
-import distage.plugins.PluginDef
+// import distage.plugins.PluginDef
+import izumi.distage.plugins.PluginDef
 
 import infrastructure.wallet.WalletContainer as obj
 
