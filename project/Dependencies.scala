@@ -6,8 +6,9 @@ object Dependencies {
   object V {
     val scalaLTSVersion      = "3.3.3"
     // val scalaLTSVersion      = "3.4.2"
-    val distage              = "1.2.8"
-    //val distage              = "1.2.5"
+    val distage              = "1.2.8" // working
+    // val distage              = "1.2.11"
+    
     //val scalaLatestVersion   = "3.3.3"
     val scalaLatestVersion   = "3.4.2"
     val logstage             = distage
@@ -34,7 +35,7 @@ object Dependencies {
     val grpc                 = "1.64.0"
     val scalapbCommonProtos  = "2.9.6-0"
     val avroCompiler         = "1.11.3"
-    val chimney              = "1.1.0"
+    val chimney              = "1.3.0"
     val doobie               = "1.0.0-RC5"
     val skunk                = "1.1.0-M3"
     val postgress            = "42.7.3"

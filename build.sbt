@@ -34,6 +34,7 @@ lazy val commonSettings = Seq(
   ThisBuild / evictionErrorLevel := Level.Info,
   dependencyOverrides ++= Seq(
   ),
+  ThisBuild / resolvers += Resolver.mavenLocal,
   ThisBuild / resolvers += "Akka library repository".at("https://repo.akka.io/maven"),
   ThisBuild / resolvers += "Confluent Maven Repository".at("https://packages.confluent.io/maven/"),
 )
@@ -99,7 +100,8 @@ lazy val grpcApi = project
       Deps.scalapbCommonProtos,
       Deps.scalapbProtobufu,
     ),
-    PB.protocVersion := "4.27.0",
+    PB.protocVersion := "3.25.2",
+    // PB.protocVersion := "4.27.0",
     // fs2GrpcOutputPath := (Compile / baseDirectory).value / "src/main/scala/fs2-grpc",
     // scalapbProtobufDirectory := (Compile / baseDirectory).value / "src/main/scala/scalapb",
   )
@@ -172,9 +174,6 @@ val scenario1 = Seq(
 )
 
 val scenario2 = Seq(
-  "import demo.examples.*",
-  "import demo.examples.ServerMain.*",
-  "init",
 )
 
 // complete setup

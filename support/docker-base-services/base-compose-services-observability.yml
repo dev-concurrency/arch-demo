@@ -2,7 +2,7 @@
 services:
 
   prometheus-base:
-    image: prom/prometheus:v2.52.0
+    image: prom/prometheus:v2.53.0
     hostname: "prometheus"
     ports:
       - 9090:9090
