@@ -7,11 +7,11 @@ set export := true
 # default: compile
 
 docker_data_dir := env("PROJECT_DIRECTORY") + "/" + env("DATA_BASE_PATH")
-postgres_data_dir := docker_data_dir + "/.postgres"
-cassandra_data_dir := docker_data_dir + "/.cassandra"
-kafka_data_dir := docker_data_dir + "/.kafka"
-prometheus_data_dir := docker_data_dir + "/.prometheus"
-grafana_data_dir := docker_data_dir + "/.grafana"
+postgres_data_dir := docker_data_dir + "/.postgres/"
+cassandra_data_dir := docker_data_dir + "/.cassandra/"
+kafka_data_dir := docker_data_dir + "/.kafka/"
+prometheus_data_dir := docker_data_dir + "/.prometheus/"
+grafana_data_dir := docker_data_dir + "/.grafana/"
 
 # postgres_data_dir := justfile_directory() + "/support/.data/.postgres"
 # cassandra_data_dir := justfile_directory() + "/support/.data/.cassandra"
@@ -66,6 +66,10 @@ infrastructure-up:
       mkdir -p "{{ cassandra_data_dir }}"
       mkdir -p "{{ grafana_data_dir }}"
       sudo chmod -R 777 "{{ docker_data_dir }}"
+
+      mkdir -p logs/var/vector
+      cp -R "$PROJECT_DIRECTORY/support/observability/grafana/extra/." "{{ grafana_data_dir }}"
+
     fi
     
     cassandra_data_dir="{{ cassandra_data_dir }}"
@@ -109,8 +113,7 @@ infrastructure-down:
 clean-infrastructure-data: infrastructure-down
     #!/usr/bin/env bash
 
-    rm -Rf support/observability/data/grafana/grafana.db
-    sudo rm -Rf support/observability/data/grafana/alerting
+    sudo rm -Rf support/observability/data/grafana/alerting || true
 
     sudo rm -Rf "{{ docker_data_dir }}"
 
@@ -122,7 +125,7 @@ clean-infrastructure-data: infrastructure-down
     
     sudo chmod -R 777 "{{ docker_data_dir }}"
 
-    rm -Rf logs
+    rm -Rf logs || true
     mkdir -p logs/var/vector
 
     echo "All infrastructure data cleaned"
