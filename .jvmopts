@@ -11,4 +11,4 @@
 # -Dactive.app="ports-app"
 # -Dconfig.file=src/main/resources/app2.conf
 # -Dconfig.file=src/main/resources/app1.conf
--Dsbt.log.noformat=true
+# -Dsbt.log.noformat=true

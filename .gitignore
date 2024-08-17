@@ -46,6 +46,7 @@ metals.sbt
 /.worksheet/
 
 support/.data/
+docker/.data
 support/observability/data/grafana/alerting/
 support/observability/data/grafana/grafana.db
 

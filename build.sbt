@@ -123,6 +123,9 @@ lazy val root = project
   .settings(commonSettings)
   .settings(appSettings)
   .settings(
+    // https://www.wartremover.org/doc/warts.html
+    // Compile / compile / wartremoverErrors ++= Warts.all,
+    // Compile / compile / wartremoverWarnings ++= Warts.all,
     scalaVersion := V.scalaLatestVersion,
     // scalafmtOnCompile := true,
     Compile / run / fork := true,

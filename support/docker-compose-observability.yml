@@ -1,20 +1,27 @@
 services:
 
   prometheus:
+    container_name: prometheus
     extends:
-        file: docker-base-services/base-compose-services-observability.yml
+        file: support/docker-base-services/base-compose-services-observability.yml
         service: prometheus-base
     volumes:
-      - "${pwd-.}/observability/prom/prometheus.yml:/etc/prometheus/prometheus.yml:ro"
-      - "${pwd-.}/.data/.prometheus:/prometheus"
+      # - "${pwd-.}/observability/prom/prometheus.yml:/etc/prometheus/prometheus.yml:ro"
+      - "$PROJECT_DIRECTORY/support/observability/prom/prometheus.yml:/etc/prometheus/prometheus.yml:ro"
+      # - "${pwd-.}/.data/.prometheus:/prometheus"
+      - "${DATA_BASE_PATH}/.prometheus:/prometheus"
         
   grafana:
+    container_name: grafana
     extends:
-        file: docker-base-services/base-compose-services-observability.yml
+        file: support/docker-base-services/base-compose-services-observability.yml
         service: grafana-base
     volumes:
-      - "${pwd-.}/observability/grafana/custom.ini:/usr/share/grafana/conf/defaults.ini:ro"
-      - "${pwd-.}/observability/grafana/provisioning/:/etc/grafana/provisioning"
-      - "${pwd-.}/observability/data/grafana:/var/lib/grafana"
+      # - "${pwd-.}/observability/grafana/custom.ini:/usr/share/grafana/conf/defaults.ini:ro"
+      - "$PROJECT_DIRECTORY/support/observability/grafana/custom.ini:/usr/share/grafana/conf/defaults.ini:ro"
+      # - "${pwd-.}/observability/grafana/provisioning/:/etc/grafana/provisioning"
+      - "$PROJECT_DIRECTORY/support/observability/grafana/provisioning/:/etc/grafana/provisioning"
+      # - "${pwd-.}/observability/data/grafana:/var/lib/grafana"
+      - "${DATA_BASE_PATH}/.grafana:/var/lib/grafana"
     depends_on:
       - prometheus

@@ -21,3 +21,6 @@ addSbtPlugin("com.github.sbt" % "sbt-avro" % V.sbt_avro)
 // different version of the Avro library. Therefore we specify the compiler
 // version here explicitly.
 libraryDependencies += "org.apache.avro" % "avro-compiler" % V.avro_compiler
+
+// https://www.wartremover.org/doc/install-setup.html
+addSbtPlugin("org.wartremover" % "sbt-wartremover" % "3.1.8")

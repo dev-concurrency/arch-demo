@@ -6,10 +6,17 @@ set export := true
 
 # default: compile
 
-postgres_data_dir := justfile_directory() + "/support/.data/.postgres"
-cassandra_data_dir := justfile_directory() + "/support/.data/.cassandra"
-kafka_data_dir := justfile_directory() + "/support/.data/.kafka"
-prometheus_data_dir := justfile_directory() + "/support/.data/.prometheus"
+docker_data_dir := env("PROJECT_DIRECTORY") + "/" + env("DATA_BASE_PATH")
+postgres_data_dir := docker_data_dir + "/.postgres"
+cassandra_data_dir := docker_data_dir + "/.cassandra"
+kafka_data_dir := docker_data_dir + "/.kafka"
+prometheus_data_dir := docker_data_dir + "/.prometheus"
+grafana_data_dir := docker_data_dir + "/.grafana"
+
+# postgres_data_dir := justfile_directory() + "/support/.data/.postgres"
+# cassandra_data_dir := justfile_directory() + "/support/.data/.cassandra"
+# kafka_data_dir := justfile_directory() + "/support/.data/.kafka"
+# prometheus_data_dir := justfile_directory() + "/support/.data/.prometheus"
 
 run-migrations:
     liquibase update --defaults-file=support/storage/postgres/liquibase.properties
@@ -32,6 +39,7 @@ truncate-all:
 [macos]
 docker-compose-up:
     docker compose \
+      --project-directory $PROJECT_DIRECTORY \
       -f support/docker-compose-storage-macos.yml \
       -f support/docker-compose-messaging.yml \
       -f support/docker-compose-observability.yml \
@@ -41,6 +49,7 @@ docker-compose-up:
 [linux]
 docker-compose-up:
     docker compose \
+      --project-directory $PROJECT_DIRECTORY \
       -f support/docker-compose-storage-linux.yml \
       -f support/docker-compose-messaging.yml \
       -f support/docker-compose-observability.yml \
@@ -53,19 +62,23 @@ infrastructure-up:
     if [[ ! -d "{{ kafka_data_dir }}" ]]; then
       mkdir -p "{{ kafka_data_dir }}"
       mkdir -p "{{ prometheus_data_dir }}"
-      sudo chmod -R 777 support/.data
+      mkdir -p "{{ postgres_data_dir }}"
+      mkdir -p "{{ cassandra_data_dir }}"
+      mkdir -p "{{ grafana_data_dir }}"
+      sudo chmod -R 777 "{{ docker_data_dir }}"
     fi
-
-    if [[ ! -d "{{ cassandra_data_dir }}" ]]; then
-      firstTime=true
+    
+    cassandra_data_dir="{{ cassandra_data_dir }}"
+    if [ -z "$( ls -A $cassandra_data_dir )" ]; then
+       firstTime=true
     else
-      firstTime=false
+       firstTime=false
     fi
 
     just docker-compose-up
 
     if [ "$firstTime" == "true" ]; then
-      docker logs support-cassandra_temp-1 -f
+      docker logs cassandra_temp -f
       just run-migrations
     fi
 
@@ -73,6 +86,7 @@ infrastructure-up:
 [macos]
 docker-compose-down:
     docker compose \
+      --project-directory $PROJECT_DIRECTORY \
       -f support/docker-compose-storage-macos.yml \
       -f support/docker-compose-messaging.yml \
       -f support/docker-compose-observability.yml \
@@ -82,6 +96,7 @@ docker-compose-down:
 [linux]
 docker-compose-down:
     docker compose \
+      --project-directory $PROJECT_DIRECTORY \
       -f support/docker-compose-storage-linux.yml \
       -f support/docker-compose-messaging.yml \
       -f support/docker-compose-observability.yml \
@@ -96,13 +111,20 @@ clean-infrastructure-data: infrastructure-down
 
     rm -Rf support/observability/data/grafana/grafana.db
     sudo rm -Rf support/observability/data/grafana/alerting
-    sudo rm -Rf support/.data
-    mkdir -p "{{ prometheus_data_dir }}"
+
+    sudo rm -Rf "{{ docker_data_dir }}"
+
     mkdir -p "{{ kafka_data_dir }}"
-    sudo chmod -R 777 support/.data
-    sudo chmod -R 777 support/observability/data/grafana
+    mkdir -p "{{ prometheus_data_dir }}"
+    mkdir -p "{{ postgres_data_dir }}"
+    mkdir -p "{{ cassandra_data_dir }}"
+    mkdir -p "{{ grafana_data_dir }}"
+    
+    sudo chmod -R 777 "{{ docker_data_dir }}"
+
     rm -Rf logs
     mkdir -p logs/var/vector
+
     echo "All infrastructure data cleaned"
 
 [confirm]
