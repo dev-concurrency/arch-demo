@@ -82,7 +82,7 @@ infrastructure-up:
     just docker-compose-up
 
     if [ "$firstTime" == "true" ]; then
-      docker logs cassandra_temp -f
+      docker logs cassandra-temp -f
       just run-migrations
     fi
 
@@ -114,20 +114,7 @@ clean-infrastructure-data: infrastructure-down
     #!/usr/bin/env bash
 
     sudo rm -Rf support/observability/data/grafana/alerting || true
-
     sudo rm -Rf "{{ docker_data_dir }}"
-
-    mkdir -p "{{ kafka_data_dir }}"
-    mkdir -p "{{ prometheus_data_dir }}"
-    mkdir -p "{{ postgres_data_dir }}"
-    mkdir -p "{{ cassandra_data_dir }}"
-    mkdir -p "{{ grafana_data_dir }}"
-    
-    sudo chmod -R 777 "{{ docker_data_dir }}"
-
-    rm -Rf logs || true
-    mkdir -p logs/var/vector
-
     echo "All infrastructure data cleaned"
 
 [confirm]

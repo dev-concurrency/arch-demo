@@ -1,10 +1,10 @@
 services:
 
-  redpanda-0:
+  redpanda:
     extends:
         file: support/docker-base-services/base-compose-services-messaging.yml
         service: redpanda
-    container_name: redpanda-0
+    container_name: redpanda
     volumes:
       - "${DATA_BASE_PATH}/.kafka:/var/lib/redpanda/data"
     networks:
@@ -18,7 +18,7 @@ services:
     networks:
       - redpanda_network
     depends_on:
-      - redpanda-0
+      - redpanda
         
 networks:
   redpanda_network:

@@ -1,6 +1,6 @@
 services:
   postgres-db:
-    container_name: postgres_db
+    container_name: postgres-db
     extends:
       file: support/docker-base-services/base-compose-services-storage.yml
       service: postgres
@@ -10,8 +10,8 @@ services:
       # - ./storage/postgres/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
       - "$PROJECT_DIRECTORY/support/storage/postgres/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d"
 
-  cassandra_db:
-    container_name: cassandra_db
+  cassandra-db:
+    container_name: cassandra-db
     extends:
         file: support/docker-base-services/base-compose-services-storage.yml
         service: cassandra 
@@ -21,8 +21,8 @@ services:
     networks:
         - cassandra_network
 
-  cassandra_temp:
-    container_name: cassandra_temp
+  cassandra-temp:
+    container_name: cassandra-temp
     # hostname: cassandra_temp
     extends:
         file: support/docker-base-services/base-compose-services-storage.yml
