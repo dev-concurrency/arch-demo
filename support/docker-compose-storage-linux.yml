@@ -1,6 +1,7 @@
 services:
   postgres-db:
-    container_name: postgres-db
+    container_name: postgres-db.dev
+    hostname: postgres-db.dev
     extends:
       file: support/docker-base-services/base-compose-services-storage.yml
       service: postgres

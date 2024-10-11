@@ -4,13 +4,10 @@ object Dependencies {
 
 // format: off
   object V {
-    val scalaLTSVersion      = "3.3.3"
-    // val scalaLTSVersion      = "3.4.2"
-    // val distage              = "1.2.8" // working
-    val distage              = "1.2.11"
+    val scalaLTSVersion      = "3.3.4"
+    val distage              = "1.2.15"
     
-    //val scalaLatestVersion   = "3.3.3"
-    val scalaLatestVersion   = "3.4.2"
+    val scalaLatestVersion   = "3.5.1"
     val logstage             = distage
     val scalatest            = "3.2.18"
     val scalacheck           = "1.17.0"
@@ -18,16 +15,22 @@ object Dependencies {
     val zio                  = "2.0.21"
     val zioCats              = "23.0.0.8"
     val circeGeneric         = "0.14.6"
-    val akkaVersion          = "2.9.3"
+    // val akkaVersion          = "2.9.3"
+    val akkaVersion          = "2.9.5" // (Aug 19 2024) from 2.9.6 a license key is required
+    // val akkaGrpc             = "2.4.4"
     val akkaGrpc             = "2.4.3"
     val kafkaVersion         = "6.0.0"
     val logbackVersion       = "1.4.14"
     val jacksonVersion       = "2.11.4"
+    val jacksonScalaVersion  = "2.18.0"
     val akkaHttpVersion      = "10.6.3"
-    val akkaManagement       = "1.5.2"
-    val cassandra            = "1.2.1"
-    val akkaPersistenceR2dbc = "1.2.4"
-    val akkaProjection       = "1.5.4"
+    val akkaManagement       = "1.5.3"
+    
+    val akkaPersistenceR2dbc = "1.2.5"
+    // val akkaPersistenceR2dbc = "1.2.4"
+
+    val akkaCassandra        = "1.2.1"
+    val akkaProjection       = "1.5.5"
     val cats                 = "2.10.0"
     val catsEffect           = "3.5.4"
     val fs2                  = "3.10.2"
@@ -35,18 +38,20 @@ object Dependencies {
     val grpc                 = "1.64.0"
     val scalapbCommonProtos  = "2.9.6-0"
     val avroCompiler         = "1.11.3"
-    val chimney              = "1.3.0"
-    val doobie               = "1.0.0-RC5"
+    val chimney              = "1.5.0"
+    val doobie               = "1.0.0-RC6"
     val skunk                = "1.1.0-M3"
     val postgress            = "42.7.3"
     val commonsCompress      = "1.26.1"
     // https://packages.confluent.io/maven/io/confluent/kafka-avro-serializer/
     val kafkaAvroSerializer  = "7.6.1"
     val smithytranslateTraitsVersion = "0.5.3"
-    val http4s                       = "0.23.27"
-    val scalapb                      = "0.11.15"
+    val http4s                       = "0.23.28"
+    val scalapb                      = "0.11.17"
     val avroCompilerVersion          = "1.11.3"
     val fs2Kafka                     = "3.5.1"
+    
+    val helenus                      = "1.0.0"
 
   }
 
@@ -83,10 +88,12 @@ object Dependencies {
 
     val akkaActorTyped             = "com.typesafe.akka"             %% "akka-actor-typed"                  % V.akkaVersion
     val akkaDiscovery              = "com.typesafe.akka"             %% "akka-discovery"                    % V.akkaVersion
+    val akkaKubernetes             = "com.lightbend.akka.discovery"  %% "akka-discovery-kubernetes-api"     % V.akkaManagement
     val akkaTestkitTyped           = "com.typesafe.akka"             %% "akka-actor-testkit-typed"          % V.akkaVersion % Test
     val akkaStream                 = "com.typesafe.akka"             %% "akka-stream"                       % V.akkaVersion
     val akkaStreamKafka            = "com.typesafe.akka"             %% "akka-stream-kafka"                 % V.kafkaVersion
     val jacksonDatabind            = "com.fasterxml.jackson.core"     % "jackson-databind"                  % V.jacksonVersion
+    val jacksonScalaModule         = "com.fasterxml.jackson.module"  %% "jackson-module-scala"              % V.jacksonScalaVersion
     val akkaSerializationJackson   = "com.typesafe.akka"             %% "akka-serialization-jackson"        % V.akkaVersion
     val akkaHttp                   = "com.typesafe.akka"             %% "akka-http"                         % V.akkaHttpVersion
     val akkaClusterTyped           = "com.typesafe.akka"             %% "akka-cluster-typed"                % V.akkaVersion
@@ -94,12 +101,11 @@ object Dependencies {
     val akkaClusterBootstrap       = "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap" % V.akkaManagement
     val akkaClusterHttp            = "com.lightbend.akka.management" %% "akka-management-cluster-http"      % V.akkaManagement
     val akkaPersistence            = "com.typesafe.akka"             %% "akka-persistence-typed"            % V.akkaVersion
-    val akkaPersistenceCassandra   = "com.typesafe.akka"             %% "akka-persistence-cassandra"        % V.cassandra
+    val akkaPersistenceCassandra   = "com.typesafe.akka"             %% "akka-persistence-cassandra"        % V.akkaCassandra
     val akkaPersistenceR2dbc       = "com.lightbend.akka"            %% "akka-persistence-r2dbc"            % V.akkaPersistenceR2dbc
     val akkaProjectionR2dbc        = "com.lightbend.akka"            %% "akka-projection-r2dbc"             % V.akkaProjection
     val akkaProjectionCore         = "com.lightbend.akka"            %% "akka-projection-core"              % V.akkaProjection
     val akkaProjectionEventsourced = "com.lightbend.akka"            %% "akka-projection-eventsourced"      % V.akkaProjection
-    val akkaKubernetes             = "com.lightbend.akka.discovery"  %% "akka-discovery-kubernetes-api"     % V.akkaManagement
     val akkaGrpc                   = "com.lightbend.akka.grpc"       %% "akka-grpc-runtime"                 % V.akkaGrpc
 
     val cats                       = "org.typelevel"                 %% "cats-core"                         % V.cats
@@ -133,6 +139,9 @@ object Dependencies {
     val munit                      = "org.scalameta"      %% "munit"                          % "1.0.0" % Test
     val catsMunit                  = "org.typelevel"      %% "munit-cats-effect"              % "2.0.0" % Test
 
+    // Cassandra
+    // https://github.com/nMoncho/helenus3
+    val helenus                    = "net.nmoncho"        %% "helenus-core"                   % V.helenus
 
   }
 
@@ -159,6 +168,8 @@ object Dependencies {
     Deps.akkaSlf4j,
     Deps.akkaStream,
     Deps.akkaStreamKafka,
+    Deps.jacksonDatabind,
+    Deps.jacksonScalaModule,
     Deps.akkaSerializationJackson,
     Deps.akkaHttp,
     Deps.akkaClusterTyped,
@@ -182,6 +193,7 @@ object Dependencies {
     Deps.distageCore,
     Deps.distageConfig,
     Deps.distagePlugins,
+    Deps.akkaDiscovery,
     Deps.akkaKubernetes,
     Deps.iron,
     Deps.ironCirce,
@@ -192,6 +204,7 @@ object Dependencies {
     Deps.kafkaAvroSerializer,
     Deps.munit,
     Deps.catsMunit,
+    Deps.helenus,
   )
 
 }

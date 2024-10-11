@@ -46,7 +46,7 @@ lazy val appSettings = Seq(
   scalacOptions ++=
     Seq(
       "-explain",
-      "-Ysafe-init",
+      "-Wsafe-init",
       "-deprecation",
       "-feature",
       "-Yretain-trees",
@@ -167,7 +167,7 @@ lazy val journal_events_akka_event_sourced = project
       scalapb.gen() -> (Compile / sourceManaged).value / "scalapb"
     ),
     // https://repo1.maven.org/maven2/com/google/protobuf/protoc/
-    PB.protocVersion := "4.27.0",
+    PB.protocVersion := "4.28.2",
     libraryDependencies += Deps.scalapbProtobufu,
   )
 
@@ -259,7 +259,7 @@ selectedScenario match {
 
   case _ =>
     TaskKey[Unit]("r") := (root / Compile / runMain)
-      .toTask(" demo.examples.run")
+      .toTask(" nope")
       .value
 
 }
