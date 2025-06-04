@@ -61,7 +61,7 @@ modules/rest-api/src/main/scala/
 out/
 node_modules/
 dist/
-temp/
+!temp/
 
 docs-support/
 protobuf-docs/

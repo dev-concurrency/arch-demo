@@ -70,7 +70,7 @@ def mapGen(name: String) = {
       println(s"Adding env-var: '${res._1}' with value '${res._2}'")
       m += res
     }
-    case None => 
+    case None =>
   }
   m.toMap
 }
@@ -100,8 +100,9 @@ lazy val grpcApi = project
       Deps.scalapbCommonProtos,
       Deps.scalapbProtobufu,
     ),
-    PB.protocVersion := "3.25.2",
-    // PB.protocVersion := "4.27.0",
+    // https://protobuf.dev/support/version-support/
+    // PB.protocVersion := "3.25.2",
+    PB.protocVersion := "4.29.2",
     // fs2GrpcOutputPath := (Compile / baseDirectory).value / "src/main/scala/fs2-grpc",
     // scalapbProtobufDirectory := (Compile / baseDirectory).value / "src/main/scala/scalapb",
   )
@@ -123,6 +124,7 @@ lazy val root = project
   .settings(commonSettings)
   .settings(appSettings)
   .settings(
+    name := "arch-demo",
     // https://www.wartremover.org/doc/warts.html
     // Compile / compile / wartremoverErrors ++= Warts.all,
     // Compile / compile / wartremoverWarnings ++= Warts.all,
@@ -167,7 +169,7 @@ lazy val journal_events_akka_event_sourced = project
       scalapb.gen() -> (Compile / sourceManaged).value / "scalapb"
     ),
     // https://repo1.maven.org/maven2/com/google/protobuf/protoc/
-    PB.protocVersion := "4.28.2",
+    PB.protocVersion := "4.29.2",
     libraryDependencies += Deps.scalapbProtobufu,
   )
 

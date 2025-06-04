@@ -5,9 +5,9 @@ object Dependencies {
 // format: off
   object V {
     val scalaLTSVersion      = "3.3.4"
-    val distage              = "1.2.15"
+    val distage              = "1.2.16"
     
-    val scalaLatestVersion   = "3.5.1"
+    val scalaLatestVersion   = "3.6.2"
     val logstage             = distage
     val scalatest            = "3.2.18"
     val scalacheck           = "1.17.0"
@@ -31,24 +31,27 @@ object Dependencies {
 
     val akkaCassandra        = "1.2.1"
     val akkaProjection       = "1.5.5"
-    val cats                 = "2.10.0"
+    val cats                 = "2.12.0"
     val catsEffect           = "3.5.4"
-    val fs2                  = "3.10.2"
-    val iron                 = "2.5.0"
+    val catsMTL              = "1.5.0"
+    val munit                = "1.0.2"
+    val munitCatsEffect      = "2.0.0"
+    val fs2                  = "3.11.0"
+    val iron                 = "2.6.0"
     val grpc                 = "1.64.0"
     val scalapbCommonProtos  = "2.9.6-0"
-    val avroCompiler         = "1.11.3"
-    val chimney              = "1.5.0"
+    val avroCompiler         = "1.12.0"
+    val chimney              = "1.6.0"
     val doobie               = "1.0.0-RC6"
     val skunk                = "1.1.0-M3"
     val postgress            = "42.7.3"
     val commonsCompress      = "1.26.1"
     // https://packages.confluent.io/maven/io/confluent/kafka-avro-serializer/
-    val kafkaAvroSerializer  = "7.6.1"
+    val kafkaAvroSerializer  = "7.7.1"
     val smithytranslateTraitsVersion = "0.5.3"
     val http4s                       = "0.23.28"
     val scalapb                      = "0.11.17"
-    val avroCompilerVersion          = "1.11.3"
+    val avroCompilerVersion          = "1.12.0"
     val fs2Kafka                     = "3.5.1"
     
     val helenus                      = "1.0.0"
@@ -67,11 +70,11 @@ object Dependencies {
     val doobieMunit                = "org.tpolecat"  %% "doobie-munit"          % V.doobie % Test
     val doobieFree                 = "org.tpolecat"  %% "doobie-free"           % V.doobie
 
-    val skunkRefined               = "org.tpolecat"  %% "skunk-refined" % V.skunk
-    val skunkPostgis               = "org.tpolecat"  %% "skunk-postgis" % V.skunk
-    val skunkDocs                  = "org.tpolecat"  %% "skunk-docs"    % V.skunk
-    val skunkCirce                 = "org.tpolecat"  %% "skunk-circe"   % V.skunk
-    val skunkCore                  = "org.tpolecat"  %% "skunk-core"    % V.skunk
+    val skunkRefined               = "org.tpolecat"  %% "skunk-refined"         % V.skunk
+    val skunkPostgis               = "org.tpolecat"  %% "skunk-postgis"         % V.skunk
+    val skunkDocs                  = "org.tpolecat"  %% "skunk-docs"            % V.skunk
+    val skunkCirce                 = "org.tpolecat"  %% "skunk-circe"           % V.skunk
+    val skunkCore                  = "org.tpolecat"  %% "skunk-core"            % V.skunk
 
     val logbackClassic             = "ch.qos.logback"  % "logback-classic"                   % V.logbackVersion
     val requests                   = "com.lihaoyi"    %% "requests"                          % "0.8.0"
@@ -110,7 +113,7 @@ object Dependencies {
 
     val cats                       = "org.typelevel"                 %% "cats-core"                         % V.cats
     val catsEffect                 = "org.typelevel"                 %% "cats-effect"                       % V.catsEffect
-    val catsMtl                    = "org.typelevel"                 %% "cats-mtl"                          % "1.4.0"
+    val catsMtl                    = "org.typelevel"                 %% "cats-mtl"                          % V.catsMTL
 
     val fs2                        = "co.fs2"                        %% "fs2-core"                          % V.fs2
     val fs2Io                      = "co.fs2"                        %% "fs2-io"                            % V.fs2
@@ -136,8 +139,8 @@ object Dependencies {
     val avro                       = "org.apache.avro"     % "avro"                           % V.avroCompilerVersion
     
     val fs2Kafka                   = "com.github.fd4s"    %% "fs2-kafka"                      % V.fs2Kafka
-    val munit                      = "org.scalameta"      %% "munit"                          % "1.0.0" % Test
-    val catsMunit                  = "org.typelevel"      %% "munit-cats-effect"              % "2.0.0" % Test
+    val munit                      = "org.scalameta"      %% "munit"                          % V.munit % Test
+    val catsMunit                  = "org.typelevel"      %% "munit-cats-effect"              % V.munitCatsEffect % Test
 
     // Cassandra
     // https://github.com/nMoncho/helenus3

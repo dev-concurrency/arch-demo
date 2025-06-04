@@ -1,4 +1,3 @@
-
 TRUNCATE TABLE event_journal;
 TRUNCATE TABLE snapshot;
 TRUNCATE TABLE durable_state;

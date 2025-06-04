@@ -220,7 +220,7 @@ object Root:
                   val appModules = PluginLoader().load(pluginConfig)
                   val module = appModules.result.merge
 
-                  val entity = Injector().produceGet[obj.EntityConfig](module).unsafeGet()
+                  val entity: obj.EntityConfig = Injector().produceGet[obj.EntityConfig](module).unsafeGet()
                   // println(entity.echo)
                   entity
                 }

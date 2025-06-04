@@ -159,10 +159,15 @@ object modulePlugin extends PluginDef {
   make[Service1].fromTrait[Service1.Impl]
 }
 
+case class H(name: String)(using i: Int)
+
 def runDemo3 =
     val pluginConfig = PluginConfig.cached(packagesEnabled = Seq("components.examples"))
     val appModules = PluginLoader().load(pluginConfig)
     val module = appModules.result.merge
+    var a = 34
+    given Int = a
+    val x = H("teru")
 
     Injector().produceRun(module) {
       (

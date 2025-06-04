@@ -26,7 +26,6 @@ def addCredit(c: Int): Unit =
 
 def addDebit(c: Int): Unit = for w <- wallet do w ! Wallet.Debit(c)
 
-
 import akka.serialization.*
 
 sealed trait Model extends CborSerializable
@@ -36,20 +35,20 @@ enum MeasureAverageBudget(val id: String) extends Model:
     case PerWeek  extends MeasureAverageBudget("per_week")
     case PerMonth extends MeasureAverageBudget("per_month")
 
-case class MeasureAverage(
+case class MeasureAverage
+  (
     budget: MeasureAverageBudget,
-    value: Int
-) extends Model
+    value: Int) extends Model
 
 def chs =
-  // https://doc.akka.io/docs/akka/current/serialization.html#programmatic
-  val serialization = SerializationExtension(sys)
-  val original = MeasureAverage(MeasureAverageBudget.PerMonth, 110)
-  val bytes = serialization.serialize(original).get
-  val serializerId = serialization.findSerializerFor(original).identifier
-  val manifest = Serializers.manifestFor(serialization.findSerializerFor(original), original)
+    // https://doc.akka.io/docs/akka/current/serialization.html#programmatic
+    val serialization = SerializationExtension(sys)
+    val original = MeasureAverage(MeasureAverageBudget.PerMonth, 110)
+    val bytes = serialization.serialize(original).get
+    val serializerId = serialization.findSerializerFor(original).identifier
+    val manifest = Serializers.manifestFor(serialization.findSerializerFor(original), original)
 
-  // Turn it back into an object
-  val back = serialization.deserialize(bytes, serializerId, manifest).get
-  print(s"Original: $original\n")
-  print(s"Back: $back\n")
+    // Turn it back into an object
+    val back = serialization.deserialize(bytes, serializerId, manifest).get
+    print(s"Original: $original\n")
+    print(s"Back: $back\n")

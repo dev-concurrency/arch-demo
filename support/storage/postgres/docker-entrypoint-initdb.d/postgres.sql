@@ -1,8 +1,7 @@
-
 CREATE ROLE duser LOGIN PASSWORD 'dpass';
 
-create database service owner duser;
-create database service_test owner duser;
+CREATE DATABASE service OWNER duser;
+CREATE DATABASE service_test OWNER duser;
 
 \c service duser;
 
