@@ -1,5 +1,7 @@
 import PluginsDependencies.V
 
+//useCoursier := false
+
 resolvers += Resolver.mavenLocal
 
 //resolvers += "Akka library repository".at("https://repo.akka.io/maven")

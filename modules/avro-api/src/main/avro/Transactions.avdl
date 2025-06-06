@@ -1,5 +1,5 @@
 
-@namespace("org.integration.avro.transactions")
+@namespace("custom.integration.avro.transactions")
 protocol Transactions{
     @subject("transatcion.credit-request.v1")
     record CreditRequest{

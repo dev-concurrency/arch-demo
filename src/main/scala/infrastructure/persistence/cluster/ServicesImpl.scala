@@ -140,7 +140,7 @@ object WalletServicesImpl:
           } yield done
 
         def addCredit(id: String, value: Credit): F[Done] =
-            val record = org.integration.avro.transactions.CreditRequest.newBuilder()
+            val record = custom.integration.avro.transactions.CreditRequest.newBuilder()
               .setId(id)
               .setAmount(value.amount)
               .build()
@@ -201,7 +201,7 @@ object WalletServicesImpl:
           } yield done
 
         def addCredit(id: String, value: WalletDataModel2.Credit): F[OkResponse] =
-            val record = org.integration.avro.transactions.CreditRequest.newBuilder()
+            val record = custom.integration.avro.transactions.CreditRequest.newBuilder()
               .setId(id)
               .setAmount(value.amount)
               .build()

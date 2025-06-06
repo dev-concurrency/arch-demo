@@ -111,10 +111,13 @@ lazy val grpcApi = project
 lazy val avroApi = project
   .in(file("modules/avro-api"))
   .disablePlugins(ScalafixPlugin)
+  .enablePlugins(SbtAvro)
   .settings(
+    avroVersion := "1.12.0",
     scalaVersion := V.scalaLTSVersion,
     libraryDependencies ++= Seq(
       Deps.avro,
+      "org.slf4j" % "slf4j-api" % "2.0.16", // crap needed bc the last version of avro complier, sbt complain that coursier do not find this
     ),
   )
 

@@ -12,9 +12,10 @@ object PluginsDependencies {
     val scalapbCompiler      = "0.11.17"
     val sbt_protoc           = "1.0.7"
     val smithy4s_sbt_codegen = "0.18.23"
-    val sbt_avro             = "3.4.3"
+    val sbt_avro             = "4.0.1"
 
-    val avro_compiler        = "1.11.3"
+    // this is in two places (in project/Dependencies.scala too!)
+    val avro_compiler        = "1.12.0"
   }
 // format: on
 

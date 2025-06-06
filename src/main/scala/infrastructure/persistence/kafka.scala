@@ -93,7 +93,7 @@ class ConsumerImpl(deserializer: KDeserializer[SpecificRecord]):
     // https://docs.redpanda.com/current/reference/rpk/rpk-group/rpk-group-seek/
     //
     def processRecord(record: ConsumerRecord[String, SpecificRecord]): IO[Unit] = IO(
-      println(s"Processing record: ${record.value.asInstanceOf[org.integration.avro.transactions.CreditRequest]}")
+      println(s"Processing record: ${record.value.asInstanceOf[custom.integration.avro.transactions.CreditRequest]}")
     )
     // IO(println(s"Processing record: ${record}"))
 
@@ -122,7 +122,7 @@ class ConsumerImpl2(deserializer: KDeserializer[SpecificRecord]):
     // https://docs.redpanda.com/current/reference/rpk/rpk-group/rpk-group-seek/
     //
     def processRecord(record: CommittableConsumerRecord[IO, String, SpecificRecord]): IO[Unit] = IO(
-      println(s"Processing record: ${record.record.value.asInstanceOf[org.integration.avro.transactions.CreditRequest]}")
+      println(s"Processing record: ${record.record.value.asInstanceOf[custom.integration.avro.transactions.CreditRequest]}")
     )
     // IO(println(s"Processing record: ${record}"))
 

@@ -52,6 +52,7 @@ object Dependencies {
     val http4s                       = "0.23.28"
     val scalapb                      = "0.11.17"
     val avroCompilerVersion          = "1.12.0"
+//    val avroCompilerVersion          = "1.11.4"
     val fs2Kafka                     = "3.5.1"
     
     val helenus                      = "1.0.0"
