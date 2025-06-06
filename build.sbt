@@ -113,6 +113,7 @@ lazy val avroApi = project
   .disablePlugins(ScalafixPlugin)
   .enablePlugins(SbtAvro)
   .settings(
+    // this is in 3 places (in project/Dependencies.scala too!)
     avroVersion := "1.12.0",
     scalaVersion := V.scalaLTSVersion,
     libraryDependencies ++= Seq(

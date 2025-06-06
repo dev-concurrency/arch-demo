@@ -20,7 +20,7 @@ addSbtPlugin("com.disneystreaming.smithy4s" % "smithy4s-sbt-codegen" % V.smithy4
 addSbtPlugin("com.github.sbt" % "sbt-avro" % V.sbt_avro)
 
 // Java sources compiled with one version of Avro might be incompatible with a
-// different version of the Avro library. Therefore we specify the compiler
+// different version of the Avro library. Therefore, we specify the compiler
 // version here explicitly.
 libraryDependencies += "org.apache.avro" % "avro-compiler" % V.avro_compiler
 

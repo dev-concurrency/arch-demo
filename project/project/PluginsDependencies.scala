@@ -14,7 +14,7 @@ object PluginsDependencies {
     val smithy4s_sbt_codegen = "0.18.23"
     val sbt_avro             = "4.0.1"
 
-    // this is in two places (in project/Dependencies.scala too!)
+    // this is in 3 places (in project/Dependencies.scala too!)
     val avro_compiler        = "1.12.0"
   }
 // format: on
